@@ -38,9 +38,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Cross-Cutting
 
-- [ ] **CORE-01**: All write operations require explicit user confirmation before execution
+- [x] **CORE-01**: All write operations require explicit user confirmation before execution
 - [x] **CORE-02**: Timezone handling preserves TZID (never normalizes to UTC)
-- [ ] **CORE-03**: All write operations use ETag/If-Match for safe concurrent updates
+- [x] **CORE-03**: All write operations use ETag/If-Match for safe concurrent updates
 - [x] **CORE-04**: Server runs on macOS, Windows, and Linux
 
 ## v2 Requirements
@@ -97,8 +97,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WRITE-01 | Phase 2 | Pending |
 | WRITE-02 | Phase 2 | Pending |
 | WRITE-03 | Phase 2 | Pending |
-| CORE-01 | Phase 2 | Pending |
-| CORE-03 | Phase 2 | Pending |
+| CORE-01 | Phase 2 | Complete |
+| CORE-03 | Phase 2 | Complete |
 | SCHED-01 | Phase 3 | Pending |
 | SCHED-02 | Phase 3 | Pending |
 | SCHED-03 | Phase 3 | Pending |

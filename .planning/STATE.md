@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to plan
-stopped_at: Completed 01-foundation-read/01-03-PLAN.md
-last_updated: "2026-03-28T16:49:12.774Z"
+status: Ready to execute
+stopped_at: Completed 02-write-operations/02-01-PLAN.md
+last_updated: "2026-03-28T17:07:34.605Z"
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 5
+  completed_plans: 4
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** AI agents can act as a personal calendar assistant: find invites in email, check for conflicts, and manage calendar events — only acting after explicit user confirmation.
-**Current focus:** Phase 01 — foundation-read
+**Current focus:** Phase 02 — write-operations
 
 ## Current Position
 
-Phase: 2
-Plan: Not started
+Phase: 02 (write-operations) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -49,6 +49,7 @@ Plan: Not started
 | Phase 01-foundation-read P01 | 3 | 2 tasks | 6 files |
 | Phase 01-foundation-read P02 | 3 | 2 tasks | 3 files |
 | Phase 01-foundation-read P03 | 150s | 2 tasks | 3 files |
+| Phase 02-write-operations P01 | 156s | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,9 @@ Recent decisions affecting current work:
 - [Phase 01-foundation-read]: ical.js timezone: use time.timezone (TZID string) with time.zone?.tzid fallback for UTC/floating — never time.timezone?.tzid
 - [Phase 01-foundation-read]: CalendarService silently skips accounts that fail to connect during initialize() — partial connectivity preferred over crashing
 - [Phase 01-foundation-read]: registerOAuth2Account non-fatal on connection test failure — credentials persist and become available after server restart
+- [Phase 02-write-operations]: Use ICAL.Timezone.utcTimezone (not time.isUtc = true) to emit Z suffix in ical.js — only zone assignment triggers Z suffix in toICALString()
+- [Phase 02-write-operations]: Skip VTIMEZONE component generation in generateICS per RESEARCH.md — most providers accept events without VTIMEZONE blocks
+- [Phase 02-write-operations]: ConfirmationStore uses lazy eviction on consume() rather than background timers — simpler and correct for MCP tool request patterns
 
 ### Pending Todos
 
@@ -81,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T16:44:08.660Z
-Stopped at: Completed 01-foundation-read/01-03-PLAN.md
+Last session: 2026-03-28T17:07:34.602Z
+Stopped at: Completed 02-write-operations/02-01-PLAN.md
 Resume file: None
