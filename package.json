@@ -40,9 +40,13 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
     "cross-keychain": "^1.1.0",
+    "ical.js": "^2.2.1",
+    "luxon": "^3.7.2",
+    "tsdav": "^2.1.8",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/luxon": "^3.7.1",
     "@types/node": "^25.5.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"
