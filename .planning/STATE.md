@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to execute
-stopped_at: Completed 01-foundation-read/01-01-PLAN.md
-last_updated: "2026-03-28T16:34:35.007Z"
+stopped_at: Completed 01-foundation-read/01-02-PLAN.md
+last_updated: "2026-03-28T16:39:56.326Z"
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 ## Current Position
 
 Phase: 01 (foundation-read) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 
 ## Performance Metrics
 
@@ -47,6 +47,7 @@ Plan: 2 of 3
 
 *Updated after each plan completion*
 | Phase 01-foundation-read P01 | 3 | 2 tasks | 6 files |
+| Phase 01-foundation-read P02 | 3 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -61,6 +62,8 @@ Recent decisions affecting current work:
 - [Phase 01-foundation-read]: tokenUrl (not tokenEndpoint) in OAuth2Tokens to match tsdav credential naming
 - [Phase 01-foundation-read]: calDAVAccountSchema has no password/token fields — credentials live only in keychain
 - [Phase 01-foundation-read]: serviceName defaults to ch.honest-magic.config.caldav-server for keychain service identifier
+- [Phase 01-foundation-read]: Use Awaited<ReturnType<typeof createDAVClient>> as tsdav client type — factory returns plain object not class instance
+- [Phase 01-foundation-read]: ical.js timezone: use time.timezone (TZID string) with time.zone?.tzid fallback for UTC/floating — never time.timezone?.tzid
 
 ### Pending Todos
 
@@ -75,6 +78,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T16:34:35.004Z
-Stopped at: Completed 01-foundation-read/01-01-PLAN.md
+Last session: 2026-03-28T16:39:56.323Z
+Stopped at: Completed 01-foundation-read/01-02-PLAN.md
 Resume file: None

@@ -9,7 +9,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Connection & Auth
 
-- [ ] **CONN-01**: Server auto-discovers CalDAV endpoint via RFC 6764 (.well-known/caldav)
+- [x] **CONN-01**: Server auto-discovers CalDAV endpoint via RFC 6764 (.well-known/caldav)
 - [x] **CONN-02**: User can authenticate with Basic Auth (self-hosted, iCloud app-specific passwords)
 - [x] **CONN-03**: User can authenticate with OAuth2 (Google Calendar)
 - [x] **CONN-04**: Credentials stored securely in OS keychain via cross-keychain (macOS, Windows, Linux)
@@ -20,7 +20,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **READ-01**: User can list all calendars across configured accounts
 - [ ] **READ-02**: User can list events within a date range
 - [ ] **READ-03**: User can read full event details (time, location, attendees, description, recurrence)
-- [ ] **READ-04**: User can parse raw .ics data passed as input (from mail_mcp attachments)
+- [x] **READ-04**: User can parse raw .ics data passed as input (from mail_mcp attachments)
 
 ### Calendar Write
 
@@ -39,7 +39,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Cross-Cutting
 
 - [ ] **CORE-01**: All write operations require explicit user confirmation before execution
-- [ ] **CORE-02**: Timezone handling preserves TZID (never normalizes to UTC)
+- [x] **CORE-02**: Timezone handling preserves TZID (never normalizes to UTC)
 - [ ] **CORE-03**: All write operations use ETag/If-Match for safe concurrent updates
 - [x] **CORE-04**: Server runs on macOS, Windows, and Linux
 
@@ -83,7 +83,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CONN-01 | Phase 1 | Pending |
+| CONN-01 | Phase 1 | Complete |
 | CONN-02 | Phase 1 | Complete |
 | CONN-03 | Phase 1 | Complete |
 | CONN-04 | Phase 1 | Complete |
@@ -91,8 +91,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | READ-01 | Phase 1 | Pending |
 | READ-02 | Phase 1 | Pending |
 | READ-03 | Phase 1 | Pending |
-| READ-04 | Phase 1 | Pending |
-| CORE-02 | Phase 1 | Pending |
+| READ-04 | Phase 1 | Complete |
+| CORE-02 | Phase 1 | Complete |
 | CORE-04 | Phase 1 | Complete |
 | WRITE-01 | Phase 2 | Pending |
 | WRITE-02 | Phase 2 | Pending |
