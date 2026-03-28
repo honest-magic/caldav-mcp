@@ -1,0 +1,50 @@
+{
+  "name": "@honest-magic/caldav-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for AI-powered calendar access via CalDAV",
+  "keywords": [
+    "mcp",
+    "calendar",
+    "caldav",
+    "ai",
+    "llm",
+    "model-context-protocol"
+  ],
+  "author": "honest-magic",
+  "license": "MIT",
+  "homepage": "https://github.com/honest-magic/caldav-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/honest-magic/caldav-mcp.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "type": "module",
+  "bin": {
+    "caldav-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "cross-keychain": "^1.1.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}
