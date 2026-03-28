@@ -47,7 +47,11 @@ Plans:
   2. User can update an existing event; if the event was modified on the server since last read, the tool surfaces a conflict rather than silently overwriting
   3. User can delete an event; the operation requires explicit confirmation and fails safely if the event has changed since it was fetched
   4. No write tool (create, update, delete) executes without a preceding confirmation step — this gate cannot be bypassed
-**Plans**: TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Types, ConflictError, ConfirmationStore, iCal generator
+- [ ] 02-02-PLAN.md — CalDAVClient write methods, CalendarService confirmation gate, MCP tool handlers
 
 ### Phase 3: Scheduling Intelligence
 **Goal**: AI agents can detect conflicts across all calendars (including recurring events) and propose alternative time slots
@@ -76,6 +80,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation + Read | 3/3 | Complete   | 2026-03-28 |
-| 2. Write Operations | 0/TBD | Not started | - |
+| 2. Write Operations | 0/2 | Not started | - |
 | 3. Scheduling Intelligence | 0/TBD | Not started | - |
 | 4. RSVP + Extended Capabilities | 0/TBD | Not started | - |
