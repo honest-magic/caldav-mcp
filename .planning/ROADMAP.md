@@ -29,7 +29,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. User can list events within a specified date range, with results showing correct local times (TZID preserved, never normalized to UTC)
   4. User can read full event details including attendees, location, description, and recurrence rule
   5. User can pass raw .ics text as input and receive a parsed event structure (standalone parse, no write required)
-**Plans**: TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Foundation: deps, types, errors, config, keychain, OAuth2 refresh
+- [ ] 01-02-PLAN.md — Protocol: CalDAV client wrapper + iCal parser with unit tests
+- [ ] 01-03-PLAN.md — Service + MCP: CalendarService orchestration + MCP server with 4 tool handlers
+
 **UI hint**: no
 
 ### Phase 2: Write Operations
@@ -69,7 +75,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation + Read | 0/TBD | Not started | - |
+| 1. Foundation + Read | 0/3 | Planning complete | - |
 | 2. Write Operations | 0/TBD | Not started | - |
 | 3. Scheduling Intelligence | 0/TBD | Not started | - |
 | 4. RSVP + Extended Capabilities | 0/TBD | Not started | - |
