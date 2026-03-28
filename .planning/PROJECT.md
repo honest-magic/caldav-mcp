@@ -19,15 +19,15 @@ AI agents can act as a personal calendar assistant: find invites in email, check
 - ✓ Parse .ics data (from email attachments via mail_mcp) — Phase 1
 - ✓ Store credentials securely in OS keychain — Phase 1
 - ✓ Support multiple calendar accounts simultaneously — Phase 1
+- ✓ Create new calendar events — Phase 2
+- ✓ Update existing events (time, details, attendees) — Phase 2
+- ✓ Delete/cancel events — Phase 2
+- ✓ Confirm before any write operation (create, update, delete, RSVP) — Phase 2
 
 ### Active
 
-- [ ] Create new calendar events
-- [ ] Update existing events (time, details, attendees)
-- [ ] Delete/cancel events
 - [ ] Detect scheduling conflicts against existing events
 - [ ] Suggest available time slots when conflicts exist
-- [ ] Confirm before any write operation (create, update, delete, RSVP)
 - [ ] RSVP to calendar invites (accept, decline, tentative)
 
 ### Out of Scope
@@ -81,4 +81,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-28 after Phase 1 completion*
+*Last updated: 2026-03-28 after Phase 2 completion*
