@@ -12,24 +12,23 @@ AI agents can act as a personal calendar assistant: find invites in email, check
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ Connect to any CalDAV provider (iCloud, Google, self-hosted like Radicale/Baikal) — Phase 1
+- ✓ List available calendars across configured accounts — Phase 1
+- ✓ List events with date range filtering — Phase 1
+- ✓ Read full event details (time, location, attendees, description, recurrence) — Phase 1
+- ✓ Parse .ics data (from email attachments via mail_mcp) — Phase 1
+- ✓ Store credentials securely in OS keychain — Phase 1
+- ✓ Support multiple calendar accounts simultaneously — Phase 1
 
 ### Active
 
-- [ ] Connect to any CalDAV provider (iCloud, Google, self-hosted like Radicale/Baikal)
-- [ ] List available calendars across configured accounts
-- [ ] List events with date range filtering
-- [ ] Read full event details (time, location, attendees, description, recurrence)
 - [ ] Create new calendar events
 - [ ] Update existing events (time, details, attendees)
 - [ ] Delete/cancel events
-- [ ] Parse .ics data (from email attachments via mail_mcp)
 - [ ] Detect scheduling conflicts against existing events
 - [ ] Suggest available time slots when conflicts exist
 - [ ] Confirm before any write operation (create, update, delete, RSVP)
 - [ ] RSVP to calendar invites (accept, decline, tentative)
-- [ ] Store credentials securely in OS keychain
-- [ ] Support multiple calendar accounts simultaneously
 
 ### Out of Scope
 
@@ -82,4 +81,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-28 after initialization*
+*Last updated: 2026-03-28 after Phase 1 completion*
