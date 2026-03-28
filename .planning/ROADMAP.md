@@ -51,7 +51,7 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md — Types, ConflictError, ConfirmationStore, iCal generator
-- [ ] 02-02-PLAN.md — CalDAVClient write methods, CalendarService confirmation gate, MCP tool handlers
+- [x] 02-02-PLAN.md — CalDAVClient write methods, CalendarService confirmation gate, MCP tool handlers
 
 ### Phase 3: Scheduling Intelligence
 **Goal**: AI agents can detect conflicts across all calendars (including recurring events) and propose alternative time slots

@@ -24,9 +24,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Calendar Write
 
-- [ ] **WRITE-01**: User can create a new calendar event (with confirmation gate)
-- [ ] **WRITE-02**: User can update an existing event (ETag-safe, with confirmation gate)
-- [ ] **WRITE-03**: User can delete an event (ETag-safe, with confirmation gate)
+- [x] **WRITE-01**: User can create a new calendar event (with confirmation gate)
+- [x] **WRITE-02**: User can update an existing event (ETag-safe, with confirmation gate)
+- [x] **WRITE-03**: User can delete an event (ETag-safe, with confirmation gate)
 - [ ] **WRITE-04**: User can RSVP to calendar invites (accept/decline/tentative via CalDAV + mail_mcp for iMIP email)
 
 ### Scheduling Intelligence
@@ -94,9 +94,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | READ-04 | Phase 1 | Complete |
 | CORE-02 | Phase 1 | Complete |
 | CORE-04 | Phase 1 | Complete |
-| WRITE-01 | Phase 2 | Pending |
-| WRITE-02 | Phase 2 | Pending |
-| WRITE-03 | Phase 2 | Pending |
+| WRITE-01 | Phase 2 | Complete |
+| WRITE-02 | Phase 2 | Complete |
+| WRITE-03 | Phase 2 | Complete |
 | CORE-01 | Phase 2 | Complete |
 | CORE-03 | Phase 2 | Complete |
 | SCHED-01 | Phase 3 | Pending |
