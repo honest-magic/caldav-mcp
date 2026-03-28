@@ -49,7 +49,7 @@ AI agents can act as a personal calendar assistant: find invites in email, check
 ## Constraints
 
 - **Protocol**: Must use CalDAV (RFC 4791) for broad provider compatibility
-- **Environment**: Must run locally on macOS (Darwin)
+- **Environment**: Must run locally on macOS, Windows, and Linux
 - **Interface**: Must follow MCP specification via `@modelcontextprotocol/sdk`
 - **Credentials**: Must use OS keychain (consistent with mail_mcp approach)
 - **Node.js**: >=18.0.0 (matches mail_mcp)
