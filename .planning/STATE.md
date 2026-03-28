@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to execute
-stopped_at: Completed 01-foundation-read/01-02-PLAN.md
-last_updated: "2026-03-28T16:39:56.326Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 01-foundation-read/01-03-PLAN.md
+last_updated: "2026-03-28T16:44:08.663Z"
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -48,6 +48,7 @@ Plan: 3 of 3
 *Updated after each plan completion*
 | Phase 01-foundation-read P01 | 3 | 2 tasks | 6 files |
 | Phase 01-foundation-read P02 | 3 | 2 tasks | 3 files |
+| Phase 01-foundation-read P03 | 150s | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -64,6 +65,8 @@ Recent decisions affecting current work:
 - [Phase 01-foundation-read]: serviceName defaults to ch.honest-magic.config.caldav-server for keychain service identifier
 - [Phase 01-foundation-read]: Use Awaited<ReturnType<typeof createDAVClient>> as tsdav client type — factory returns plain object not class instance
 - [Phase 01-foundation-read]: ical.js timezone: use time.timezone (TZID string) with time.zone?.tzid fallback for UTC/floating — never time.timezone?.tzid
+- [Phase 01-foundation-read]: CalendarService silently skips accounts that fail to connect during initialize() — partial connectivity preferred over crashing
+- [Phase 01-foundation-read]: registerOAuth2Account non-fatal on connection test failure — credentials persist and become available after server restart
 
 ### Pending Todos
 
@@ -78,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T16:39:56.323Z
-Stopped at: Completed 01-foundation-read/01-02-PLAN.md
+Last session: 2026-03-28T16:44:08.660Z
+Stopped at: Completed 01-foundation-read/01-03-PLAN.md
 Resume file: None

@@ -12,7 +12,7 @@ Four phases take the project from a working read-only calendar client to a full 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation + Read** - Credential storage, CalDAV discovery, multi-provider auth, and all read tools
+- [x] **Phase 1: Foundation + Read** - Credential storage, CalDAV discovery, multi-provider auth, and all read tools (completed 2026-03-28)
 - [ ] **Phase 2: Write Operations** - Create, update, delete events with ETag safety and mandatory confirmation gate
 - [ ] **Phase 3: Scheduling Intelligence** - Conflict detection, RRULE expansion, and available slot suggestion
 - [ ] **Phase 4: RSVP + Extended Capabilities** - RSVP workflow, free-busy queries, and Google OAuth2 full flow
@@ -29,12 +29,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. User can list events within a specified date range, with results showing correct local times (TZID preserved, never normalized to UTC)
   4. User can read full event details including attendees, location, description, and recurrence rule
   5. User can pass raw .ics text as input and receive a parsed event structure (standalone parse, no write required)
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 01-01-PLAN.md — Foundation: deps, types, errors, config, keychain, OAuth2 refresh
 - [x] 01-02-PLAN.md — Protocol: CalDAV client wrapper + iCal parser with unit tests
-- [ ] 01-03-PLAN.md — Service + MCP: CalendarService orchestration + MCP server with 4 tool handlers
+- [x] 01-03-PLAN.md — Service + MCP: CalendarService orchestration + MCP server with 4 tool handlers
 
 **UI hint**: no
 
@@ -75,7 +75,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation + Read | 2/3 | In Progress|  |
+| 1. Foundation + Read | 3/3 | Complete   | 2026-03-28 |
 | 2. Write Operations | 0/TBD | Not started | - |
 | 3. Scheduling Intelligence | 0/TBD | Not started | - |
 | 4. RSVP + Extended Capabilities | 0/TBD | Not started | - |

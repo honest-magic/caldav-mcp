@@ -17,9 +17,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Calendar Read
 
-- [ ] **READ-01**: User can list all calendars across configured accounts
-- [ ] **READ-02**: User can list events within a date range
-- [ ] **READ-03**: User can read full event details (time, location, attendees, description, recurrence)
+- [x] **READ-01**: User can list all calendars across configured accounts
+- [x] **READ-02**: User can list events within a date range
+- [x] **READ-03**: User can read full event details (time, location, attendees, description, recurrence)
 - [x] **READ-04**: User can parse raw .ics data passed as input (from mail_mcp attachments)
 
 ### Calendar Write
@@ -88,9 +88,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CONN-03 | Phase 1 | Complete |
 | CONN-04 | Phase 1 | Complete |
 | CONN-05 | Phase 1 | Complete |
-| READ-01 | Phase 1 | Pending |
-| READ-02 | Phase 1 | Pending |
-| READ-03 | Phase 1 | Pending |
+| READ-01 | Phase 1 | Complete |
+| READ-02 | Phase 1 | Complete |
+| READ-03 | Phase 1 | Complete |
 | READ-04 | Phase 1 | Complete |
 | CORE-02 | Phase 1 | Complete |
 | CORE-04 | Phase 1 | Complete |
