@@ -3,6 +3,7 @@ export enum CalDAVErrorCode {
   NetworkError = 'NetworkError',
   ValidationError = 'ValidationError',
   ParseError = 'ParseError',
+  ConflictError = 'ConflictError',
 }
 
 export class CalDAVMCPError extends Error {
@@ -37,5 +38,15 @@ export class ValidationError extends CalDAVMCPError {
 export class ParseError extends CalDAVMCPError {
   constructor(message: string, options?: ErrorOptions) {
     super(CalDAVErrorCode.ParseError, message, options);
+  }
+}
+
+import type { ETagConflict } from './types.js';
+
+export class ConflictError extends CalDAVMCPError {
+  public readonly conflict: ETagConflict;
+  constructor(message: string, conflict: ETagConflict, options?: ErrorOptions) {
+    super(CalDAVErrorCode.ConflictError, message, options);
+    this.conflict = conflict;
   }
 }
