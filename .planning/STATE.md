@@ -1,3 +1,17 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: Ready to execute
+stopped_at: Completed 01-foundation-read/01-01-PLAN.md
+last_updated: "2026-03-28T16:34:35.007Z"
+progress:
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 3
+  completed_plans: 1
+---
+
 # Project State
 
 ## Project Reference
@@ -5,20 +19,17 @@
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** AI agents can act as a personal calendar assistant: find invites in email, check for conflicts, and manage calendar events — only acting after explicit user confirmation.
-**Current focus:** Phase 1 — Foundation + Read
+**Current focus:** Phase 01 — foundation-read
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation + Read)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-03-28 — Roadmap created, ready for Phase 1 planning
-
-Progress: [░░░░░░░░░░] 0%
+Phase: 01 (foundation-read) — EXECUTING
+Plan: 2 of 3
 
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 0
 - Average duration: -
 - Total execution time: 0 hours
@@ -30,10 +41,12 @@ Progress: [░░░░░░░░░░] 0%
 | - | - | - | - |
 
 **Recent Trend:**
+
 - Last 5 plans: -
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 01-foundation-read P01 | 3 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -45,6 +58,9 @@ Recent decisions affecting current work:
 - Roadmap: TypeScript + tsdav + ical.js stack confirmed; mirrors mail_mcp architecture
 - Roadmap: Credential schema must support both Basic Auth and OAuth2 from Phase 1 (Google OAuth2 design decision required before Phase 1 begins)
 - Roadmap: luxon (or ical.js native IANA resolution) needed in Phase 1 — not yet in skeleton dependencies
+- [Phase 01-foundation-read]: tokenUrl (not tokenEndpoint) in OAuth2Tokens to match tsdav credential naming
+- [Phase 01-foundation-read]: calDAVAccountSchema has no password/token fields — credentials live only in keychain
+- [Phase 01-foundation-read]: serviceName defaults to ch.honest-magic.config.caldav-server for keychain service identifier
 
 ### Pending Todos
 
@@ -59,6 +75,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28
-Stopped at: Roadmap written; STATE.md initialized; REQUIREMENTS.md traceability updated
+Last session: 2026-03-28T16:34:35.004Z
+Stopped at: Completed 01-foundation-read/01-01-PLAN.md
 Resume file: None
