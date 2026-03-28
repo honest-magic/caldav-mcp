@@ -113,13 +113,13 @@ export class CalendarService {
   }
 
   /**
-   * Fetch and parse a single event by URL.
+   * Fetch and parse a single event by URL. Returns the parsed event and its ETag.
    */
   async readEvent(
     eventUrl: string,
     calendarUrl: string,
     accountId?: string,
-  ): Promise<ParsedEvent> {
+  ): Promise<{ event: ParsedEvent; etag: string | null }> {
     const { client } = await this._resolveClientForCalendar(calendarUrl, accountId);
     const cals = await client.fetchCalendars();
     const calendar = cals.find((c) => c.url === calendarUrl);
@@ -131,7 +131,7 @@ export class CalendarService {
     if (!obj || !obj.data) {
       throw new ValidationError(`Event not found: ${eventUrl}`);
     }
-    return parseICS(obj.data);
+    return { event: parseICS(obj.data), etag: obj.etag ?? null };
   }
 
   /**
