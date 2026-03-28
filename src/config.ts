@@ -86,6 +86,33 @@ async function loadAccountsFromDisk(): Promise<CalDAVAccount[]> {
 // ---------------------------------------------------------------------------
 
 /**
+ * Writes a CalDAVAccount to accounts.json with upsert semantics.
+ * Creates the file and parent directory if they don't exist.
+ * Invalidates the in-memory cache after writing.
+ */
+export async function saveAccount(account: CalDAVAccount): Promise<void> {
+  calDAVAccountSchema.parse(account); // throws ValidationError-compatible ZodError on failure
+  const dir = path.dirname(ACCOUNTS_PATH);
+  await fsPromises.mkdir(dir, { recursive: true });
+  let accounts: CalDAVAccount[] = [];
+  try {
+    const raw = await fsPromises.readFile(ACCOUNTS_PATH, 'utf-8');
+    accounts = JSON.parse(raw);
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+  }
+  // Replace existing account with same id, or append
+  const idx = accounts.findIndex((a) => a.id === account.id);
+  if (idx >= 0) {
+    accounts[idx] = account;
+  } else {
+    accounts.push(account);
+  }
+  await fsPromises.writeFile(ACCOUNTS_PATH, JSON.stringify(accounts, null, 2), 'utf-8');
+  resetConfigCache(); // Invalidate cached accounts
+}
+
+/**
  * Reads account definitions from ~/.config/caldav-mcp/accounts.json.
  * Results are cached in memory; the cache is invalidated when the file changes.
  * Returns an empty array if the file does not exist or cannot be parsed.
