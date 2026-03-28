@@ -3,12 +3,16 @@ import { parseICS } from '../utils/ical-parser.js';
 import { getAccounts, saveAccount } from '../config.js';
 import type { CalDAVAccount } from '../config.js';
 import { saveCredentials } from '../security/keychain.js';
-import { ValidationError } from '../errors.js';
-import type { CalendarSummary, EventSummary, ParsedEvent } from '../types.js';
+import { ValidationError, ConflictError, NetworkError } from '../errors.js';
+import type { CalendarSummary, EventSummary, ParsedEvent, EventTime, WritePreview } from '../types.js';
 import { DateTime } from 'luxon';
+import { ConfirmationStore } from '../utils/confirmation-store.js';
+import { generateICS } from '../utils/ical-generator.js';
+import { randomUUID } from 'node:crypto';
 
 export class CalendarService {
   private clients: Map<string, CalDAVClient> = new Map();
+  private confirmationStore = new ConfirmationStore();
 
   /**
    * Initialise all configured accounts: create clients, attempt connect().
@@ -194,6 +198,184 @@ export class CalendarService {
    */
   getConnectedAccountIds(): string[] {
     return Array.from(this.clients.keys());
+  }
+
+  /**
+   * Create a new calendar event. Call without confirmationId to get a preview.
+   * Call with confirmationId (from the preview) to execute the write.
+   */
+  async createEvent(params: {
+    calendarUrl: string;
+    summary: string;
+    start: EventTime;
+    end: EventTime;
+    description?: string | null;
+    location?: string | null;
+    accountId?: string;
+    confirmationId?: string;
+  }): Promise<WritePreview | { success: true; eventUrl: string; uid: string }> {
+    if (!params.confirmationId) {
+      // Preview mode — store args and return preview
+      const id = this.confirmationStore.create('create_event', { ...params });
+      return {
+        confirmationId: id,
+        expiresIn: '5 minutes',
+        operation: 'create' as const,
+        preview: {
+          summary: params.summary,
+          calendarUrl: params.calendarUrl,
+          start: params.start.localTime,
+          end: params.end.localTime,
+        },
+      };
+    }
+    // Execute mode — consume token and write
+    const pending = this.confirmationStore.consume(params.confirmationId);
+    if (!pending) {
+      throw new ValidationError('Confirmation expired or invalid. Please request a new preview.');
+    }
+    // Use stored args, not the execute-call args (per Pitfall 4 in RESEARCH.md)
+    const storedArgs = pending.args as typeof params;
+    const uid = randomUUID();
+    const icsString = generateICS({
+      uid,
+      summary: storedArgs.summary,
+      start: storedArgs.start as EventTime,
+      end: storedArgs.end as EventTime,
+      description: storedArgs.description,
+      location: storedArgs.location,
+    });
+    const { client } = await this._resolveClientForCalendar(storedArgs.calendarUrl, storedArgs.accountId);
+    const response = await client.createEvent(storedArgs.calendarUrl, icsString, uid);
+    if (!response.ok) {
+      throw new NetworkError(`Create event failed: HTTP ${response.status}`);
+    }
+    return { success: true, eventUrl: `${storedArgs.calendarUrl}${uid}.ics`, uid };
+  }
+
+  /**
+   * Update an existing calendar event. Requires etag from readEvent.
+   * Call without confirmationId to preview. Call with confirmationId to execute.
+   */
+  async updateEvent(params: {
+    eventUrl: string;
+    calendarUrl: string;
+    etag: string;
+    summary?: string;
+    start?: EventTime;
+    end?: EventTime;
+    description?: string | null;
+    location?: string | null;
+    accountId?: string;
+    confirmationId?: string;
+  }): Promise<WritePreview | { success: true }> {
+    if (!params.confirmationId) {
+      // Preview mode
+      const id = this.confirmationStore.create('update_event', { ...params });
+      return {
+        confirmationId: id,
+        expiresIn: '5 minutes',
+        operation: 'update' as const,
+        preview: {
+          summary: params.summary ?? '(unchanged)',
+          calendarUrl: params.calendarUrl,
+          start: params.start?.localTime,
+          end: params.end?.localTime,
+        },
+      };
+    }
+    // Execute mode
+    const pending = this.confirmationStore.consume(params.confirmationId);
+    if (!pending) {
+      throw new ValidationError('Confirmation expired or invalid. Please request a new preview.');
+    }
+    const storedArgs = pending.args as typeof params;
+    // Fetch current event to get the raw ICS as base for update
+    const { client } = await this._resolveClientForCalendar(storedArgs.calendarUrl, storedArgs.accountId);
+    const calendars = await client.fetchCalendars();
+    const calendar = calendars.find((c) => c.url === storedArgs.calendarUrl);
+    if (!calendar) throw new ValidationError(`Calendar not found: ${storedArgs.calendarUrl}`);
+    const obj = await client.fetchSingleObject(calendar, storedArgs.eventUrl);
+    if (!obj || !obj.data) throw new ValidationError(`Event not found: ${storedArgs.eventUrl}`);
+
+    // Parse current event, apply updates, regenerate ICS
+    const currentEvent = parseICS(obj.data);
+    const updatedICS = generateICS({
+      uid: currentEvent.uid,
+      summary: storedArgs.summary ?? currentEvent.summary,
+      start: storedArgs.start ?? currentEvent.start,
+      end: storedArgs.end ?? currentEvent.end ?? storedArgs.start ?? currentEvent.start,
+      description: storedArgs.description !== undefined ? storedArgs.description : currentEvent.description,
+      location: storedArgs.location !== undefined ? storedArgs.location : currentEvent.location,
+    });
+
+    const response = await client.updateEvent(storedArgs.eventUrl, updatedICS, storedArgs.etag);
+    if (!response.ok) {
+      if (response.status === 412) {
+        // ETag conflict — re-fetch server state
+        const serverObj = await client.fetchSingleObject(calendar, storedArgs.eventUrl);
+        const serverParsed = serverObj?.data ? parseICS(serverObj.data) : null;
+        throw new ConflictError('Event was modified on the server since you last read it.', {
+          localData: storedArgs as unknown as Record<string, unknown>,
+          serverData: serverParsed,
+          serverEtag: serverObj?.etag ?? null,
+        });
+      }
+      throw new NetworkError(`Update event failed: HTTP ${response.status}`);
+    }
+    return { success: true };
+  }
+
+  /**
+   * Delete a calendar event. Requires etag from readEvent.
+   * Call without confirmationId to preview. Call with confirmationId to execute.
+   */
+  async deleteEvent(params: {
+    eventUrl: string;
+    calendarUrl: string;
+    etag: string;
+    accountId?: string;
+    confirmationId?: string;
+  }): Promise<WritePreview | { success: true }> {
+    if (!params.confirmationId) {
+      // Preview mode — fetch event details for preview
+      const { event } = await this.readEvent(params.eventUrl, params.calendarUrl, params.accountId);
+      const id = this.confirmationStore.create('delete_event', { ...params });
+      return {
+        confirmationId: id,
+        expiresIn: '5 minutes',
+        operation: 'delete' as const,
+        preview: {
+          summary: event.summary,
+          calendarUrl: params.calendarUrl,
+          start: event.start.localTime,
+          end: event.end?.localTime,
+        },
+      };
+    }
+    // Execute mode
+    const pending = this.confirmationStore.consume(params.confirmationId);
+    if (!pending) {
+      throw new ValidationError('Confirmation expired or invalid. Please request a new preview.');
+    }
+    const storedArgs = pending.args as typeof params;
+    const { client } = await this._resolveClientForCalendar(storedArgs.calendarUrl, storedArgs.accountId);
+    const response = await client.deleteEvent(storedArgs.eventUrl, storedArgs.etag);
+    if (!response.ok) {
+      if (response.status === 412) {
+        const calendars = await client.fetchCalendars();
+        const calendar = calendars.find((c) => c.url === storedArgs.calendarUrl);
+        const serverObj = calendar ? await client.fetchSingleObject(calendar, storedArgs.eventUrl) : null;
+        const serverParsed = serverObj?.data ? parseICS(serverObj.data) : null;
+        throw new ConflictError('Event was modified on the server since you last read it.', {
+          localData: storedArgs as unknown as Record<string, unknown>,
+          serverData: serverParsed,
+          serverEtag: serverObj?.etag ?? null,
+        });
+      }
+      throw new NetworkError(`Delete event failed: HTTP ${response.status}`);
+    }
+    return { success: true };
   }
 
   // ---------------------------------------------------------------------------
