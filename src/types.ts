@@ -56,3 +56,23 @@ export interface OAuth2Credentials {
   expiryDate?: number;
   tokenUrl: string;
 }
+
+export interface WritePreview {
+  confirmationId: string;
+  expiresIn: string;
+  operation: 'create' | 'update' | 'delete';
+  preview: {
+    summary: string;
+    calendarUrl: string;
+    start?: string;
+    end?: string;
+    attendees?: string[];
+  };
+  warning?: string;
+}
+
+export interface ETagConflict {
+  localData: Record<string, unknown>;
+  serverData: ParsedEvent | null;
+  serverEtag: string | null;
+}
