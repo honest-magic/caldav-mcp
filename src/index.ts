@@ -8,6 +8,7 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import { CalendarService } from './services/calendar.js';
+import { handleAccountsCommand } from './cli/accounts.js';
 import { CalDAVMCPError, ConflictError } from './errors.js';
 import { parseICS } from './utils/ical-parser.js';
 import { msToEventTime } from './utils/conflict-detector.js';
@@ -623,6 +624,12 @@ export class CalDAVMCPServer {
 }
 
 async function main(): Promise<void> {
+  const args = process.argv.slice(2);
+  if (args.length > 0) {
+    const handled = await handleAccountsCommand(args);
+    if (handled) return;
+  }
+
   const server = new CalDAVMCPServer();
   await server.run();
 }
