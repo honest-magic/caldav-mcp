@@ -9,6 +9,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { CalendarService } from './services/calendar.js';
 import { handleAccountsCommand } from './cli/accounts.js';
+import { installClaude } from './cli/install-claude.js';
 import { CalDAVMCPError, ConflictError } from './errors.js';
 import { parseICS } from './utils/ical-parser.js';
 import { msToEventTime } from './utils/conflict-detector.js';
@@ -635,6 +636,39 @@ export class CalDAVMCPServer {
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
+
+  if (args.includes('--install-claude')) {
+    const { join } = await import('node:path');
+    const { homedir } = await import('node:os');
+    const { execSync } = await import('node:child_process');
+
+    let binaryPath: string;
+    try {
+      binaryPath = execSync('which caldav-mcp', { encoding: 'utf8' }).trim();
+    } catch {
+      binaryPath = process.argv[1];
+    }
+
+    const configPath = join(
+      homedir(),
+      'Library',
+      'Application Support',
+      'Claude',
+      'claude_desktop_config.json',
+    );
+
+    try {
+      const writtenPath = await installClaude(configPath, binaryPath);
+      console.log(`caldav-mcp configured for Claude Desktop at: ${writtenPath}`);
+      console.log(`Server path: ${binaryPath}`);
+      console.log('Restart Claude Desktop to activate.');
+    } catch (err) {
+      console.error(`Error: ${(err as Error).message}`);
+      process.exit(1);
+    }
+    process.exit(0);
+  }
+
   if (args.length > 0) {
     const handled = await handleAccountsCommand(args);
     if (handled) process.exit(0);
