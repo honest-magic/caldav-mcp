@@ -9,6 +9,10 @@ import { DateTime } from 'luxon';
 import { ConfirmationStore } from '../utils/confirmation-store.js';
 import { generateICS } from '../utils/ical-generator.js';
 import { randomUUID } from 'node:crypto';
+import { expandToBusyPeriods } from '../utils/recurrence-expander.js';
+import type { BusyPeriod } from '../utils/recurrence-expander.js';
+import { mergePeriods, detectConflicts, findAvailableSlots, eventTimeToMs, msToEventTime } from '../utils/conflict-detector.js';
+import type { SlotSuggestion, ConflictResult } from '../utils/conflict-detector.js';
 
 export class CalendarService {
   private clients: Map<string, CalDAVClient> = new Map();
@@ -378,9 +382,149 @@ export class CalendarService {
     return { success: true };
   }
 
+  /**
+   * Check whether a proposed time range conflicts with any existing events.
+   * By default checks across all calendars and all accounts.
+   * Returns a ConflictResult with hasConflict and the conflicting busy periods.
+   */
+  async checkConflicts(params: {
+    start: EventTime;
+    end: EventTime;
+    calendarUrls?: string[];
+    accountId?: string;
+  }): Promise<ConflictResult> {
+    const proposedStartMs = eventTimeToMs(params.start);
+    const proposedEndMs = eventTimeToMs(params.end);
+
+    // Wider fetch window: 1 year before proposed start to catch recurring masters
+    // whose DTSTART precedes the proposed time range.
+    const wideWindowStartMs = proposedStartMs - 365 * 24 * 60 * 60 * 1000;
+    const wideWindowEndMs = proposedEndMs;
+
+    const allICS = await this._fetchAllICS({
+      windowStartMs: wideWindowStartMs,
+      windowEndMs: wideWindowEndMs,
+      calendarUrls: params.calendarUrls,
+      accountId: params.accountId,
+    });
+
+    // Expand with wide window so recurring masters whose DTSTART is in the past
+    // still produce instances that fall within the proposed range.
+    const busy = expandToBusyPeriods(allICS, wideWindowStartMs, wideWindowEndMs);
+    const merged = mergePeriods(busy);
+    const conflicts = detectConflicts(proposedStartMs, proposedEndMs, merged);
+
+    return {
+      hasConflict: conflicts.length > 0,
+      conflicts,
+    };
+  }
+
+  /**
+   * Find available time slots of the requested duration within a search window.
+   * By default searches across all calendars and all accounts.
+   * Returns up to maxSlots (default 5) SlotSuggestion objects.
+   */
+  async suggestSlots(params: {
+    durationMinutes: number;
+    searchStart: EventTime;
+    searchDays?: number;
+    calendarUrls?: string[];
+    accountId?: string;
+    workingHoursStart?: number;
+    workingHoursEnd?: number;
+    maxSlots?: number;
+  }): Promise<SlotSuggestion[]> {
+    const searchDays = params.searchDays ?? 7;
+    const maxSlots = params.maxSlots ?? 5;
+    const searchStartMs = eventTimeToMs(params.searchStart);
+    const searchEndMs = searchStartMs + searchDays * 24 * 60 * 60 * 1000;
+
+    // Wider fetch window: 1 year before search start to catch recurring masters
+    const wideWindowStartMs = searchStartMs - 365 * 24 * 60 * 60 * 1000;
+
+    const allICS = await this._fetchAllICS({
+      windowStartMs: wideWindowStartMs,
+      windowEndMs: searchEndMs,
+      calendarUrls: params.calendarUrls,
+      accountId: params.accountId,
+    });
+
+    const busy = expandToBusyPeriods(allICS, wideWindowStartMs, searchEndMs);
+    const merged = mergePeriods(busy);
+
+    return findAvailableSlots({
+      searchWindowStartMs: searchStartMs,
+      searchWindowEndMs: searchEndMs,
+      durationMs: params.durationMinutes * 60 * 1000,
+      busyPeriods: merged,
+      workingHoursStart: params.workingHoursStart,
+      workingHoursEnd: params.workingHoursEnd,
+      maxSlots,
+      slotTzid: params.searchStart.tzid,
+    });
+  }
+
   // ---------------------------------------------------------------------------
   // Private helpers
   // ---------------------------------------------------------------------------
+
+  /**
+   * Fetch raw ICS data strings from all relevant calendars within a time window.
+   * Handles calendarUrls filter, accountId filter, or defaults to all accounts.
+   */
+  private async _fetchAllICS(params: {
+    windowStartMs: number;
+    windowEndMs: number;
+    calendarUrls?: string[];
+    accountId?: string;
+  }): Promise<string[]> {
+    const windowStart = DateTime.fromMillis(params.windowStartMs).toUTC().toISO()!;
+    const windowEnd = DateTime.fromMillis(params.windowEndMs).toUTC().toISO()!;
+    const timeRange = { start: windowStart, end: windowEnd };
+
+    const allICS: string[] = [];
+
+    if (params.calendarUrls && params.calendarUrls.length > 0) {
+      // Fetch from specific calendars — resolve each calendar's owning client
+      for (const calUrl of params.calendarUrls) {
+        try {
+          const { client } = await this._resolveClientForCalendar(calUrl, params.accountId);
+          const cals = await client.fetchCalendars();
+          const calendar = cals.find((c) => c.url === calUrl);
+          if (!calendar) continue;
+          const objects = await client.fetchCalendarObjects(calendar, timeRange);
+          for (const obj of objects) {
+            if (obj.data) allICS.push(obj.data as string);
+          }
+        } catch (err) {
+          console.error(`[CalendarService] _fetchAllICS: failed for calendar ${calUrl}:`, err);
+        }
+      }
+    } else {
+      // Fetch from all calendars across resolved accounts
+      const entries = this._resolveClients(params.accountId);
+      for (const [, client] of entries) {
+        try {
+          const cals = await client.fetchCalendars();
+          for (const calendar of cals) {
+            try {
+              const objects = await client.fetchCalendarObjects(calendar, timeRange);
+              for (const obj of objects) {
+                if (obj.data) allICS.push(obj.data as string);
+              }
+            } catch (err) {
+              console.error(`[CalendarService] _fetchAllICS: failed for calendar ${calendar.url}:`, err);
+            }
+          }
+        } catch (err) {
+          console.error(`[CalendarService] _fetchAllICS: failed to fetch calendars:`, err);
+        }
+      }
+    }
+
+    return allICS;
+  }
 
   /** Return client entries filtered to accountId (or all if undefined). */
   private _resolveClients(accountId?: string): Array<[string, CalDAVClient]> {
