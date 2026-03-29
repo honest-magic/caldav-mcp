@@ -93,8 +93,14 @@ None yet.
 - Phase 1: Confirm whether ical.js handles IANA timezone resolution natively or if luxon must be added to skeleton
 - Phase 4: Confirm mail_mcp interface contract (tool name + parameter shape for sending iMIP emails) before Phase 4 design
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260329-hhq | Add CLI accounts subcommands (add/list/remove) matching mail_mcp pattern | 2026-03-29 | 1c95711 | [260329-hhq-add-cli-accounts-subcommands-add-list-re](./quick/260329-hhq-add-cli-accounts-subcommands-add-list-re/) |
+
 ## Session Continuity
 
-Last session: 2026-03-29T09:52:15.542Z
-Stopped at: Completed 03-scheduling-intelligence/03-02-PLAN.md
+Last session: 2026-03-29T12:42:00.000Z
+Stopped at: Completed quick task 260329-hhq
 Resume file: None
