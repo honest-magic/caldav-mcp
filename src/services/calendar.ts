@@ -100,11 +100,16 @@ export class CalendarService {
         continue;
       }
 
-      // Client-side date filter — defensive against servers that ignore REPORT time-range
-      const eventStart = DateTime.fromISO(parsed.start.localTime, {
-        zone: parsed.start.tzid === 'floating' ? 'local' : parsed.start.tzid,
-      }).toUTC();
-      if (eventStart < startDT || eventStart > endDT) continue;
+      // Client-side date filter — defensive against servers that ignore REPORT time-range.
+      // Skip filter for recurring events: the server already matched an occurrence in the
+      // requested range, but the master DTSTART may be far outside the window.
+      const hasRRule = obj.data.includes('RRULE');
+      if (!hasRRule) {
+        const eventStart = DateTime.fromISO(parsed.start.localTime, {
+          zone: parsed.start.tzid === 'floating' ? 'local' : parsed.start.tzid,
+        }).toUTC();
+        if (eventStart < startDT || eventStart > endDT) continue;
+      }
 
       results.push({
         uid: parsed.uid,
@@ -392,6 +397,7 @@ export class CalendarService {
     end: EventTime;
     calendarUrls?: string[];
     accountId?: string;
+    includeAllDay?: boolean;
   }): Promise<ConflictResult> {
     const proposedStartMs = eventTimeToMs(params.start);
     const proposedEndMs = eventTimeToMs(params.end);
@@ -410,7 +416,9 @@ export class CalendarService {
 
     // Expand with wide window so recurring masters whose DTSTART is in the past
     // still produce instances that fall within the proposed range.
-    const busy = expandToBusyPeriods(allICS, wideWindowStartMs, wideWindowEndMs);
+    const busy = expandToBusyPeriods(allICS, wideWindowStartMs, wideWindowEndMs, {
+      excludeAllDay: !(params.includeAllDay ?? false),
+    });
     const merged = mergePeriods(busy);
     const conflicts = detectConflicts(proposedStartMs, proposedEndMs, merged);
 
@@ -434,6 +442,7 @@ export class CalendarService {
     workingHoursStart?: number;
     workingHoursEnd?: number;
     maxSlots?: number;
+    includeAllDay?: boolean;
   }): Promise<SlotSuggestion[]> {
     const searchDays = params.searchDays ?? 7;
     const maxSlots = params.maxSlots ?? 5;
@@ -450,7 +459,9 @@ export class CalendarService {
       accountId: params.accountId,
     });
 
-    const busy = expandToBusyPeriods(allICS, wideWindowStartMs, searchEndMs);
+    const busy = expandToBusyPeriods(allICS, wideWindowStartMs, searchEndMs, {
+      excludeAllDay: !(params.includeAllDay ?? false),
+    });
     const merged = mergePeriods(busy);
 
     return findAvailableSlots({

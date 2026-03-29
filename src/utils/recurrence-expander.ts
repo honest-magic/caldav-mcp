@@ -53,7 +53,9 @@ export function expandToBusyPeriods(
   allICSObjects: string[],
   windowStartMs: number,
   windowEndMs: number,
+  options?: { excludeAllDay?: boolean },
 ): BusyPeriod[] {
+  const excludeAllDay = options?.excludeAllDay ?? false;
   // Step 1: Group VEVENTs by UID — separate masters (no recurrence-id) from exceptions
   const masters = new Map<string, ICAL.Component>();
   const exceptions = new Map<string, ICAL.Component[]>();
@@ -94,6 +96,9 @@ export function expandToBusyPeriods(
     // Extract master TZID for fallback in conversion
     const dtStartProp = masterVEvent.getFirstProperty('dtstart');
     const masterTzid = (dtStartProp?.getParameter('tzid') as string | null) ?? 'UTC';
+
+    // Skip all-day events when excludeAllDay is set
+    if (excludeAllDay && event.startDate.isDate) continue;
 
     if (!event.isRecurring()) {
       // Non-recurring: compute single BusyPeriod, check window overlap

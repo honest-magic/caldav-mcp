@@ -334,6 +334,10 @@ export class CalDAVMCPServer {
               type: 'string',
               description: 'Optional account ID to restrict the conflict check to one account.',
             },
+            includeAllDay: {
+              type: 'boolean',
+              description: 'Include all-day events in conflict detection. Defaults to false (all-day events like holidays/vacations are excluded).',
+            },
           },
           required: ['startDate', 'startTzid', 'endDate', 'endTzid'],
         },
@@ -381,6 +385,10 @@ export class CalDAVMCPServer {
             maxSlots: {
               type: 'number',
               description: 'Maximum number of slot suggestions to return. Defaults to 5.',
+            },
+            includeAllDay: {
+              type: 'boolean',
+              description: 'Include all-day events as busy periods. Defaults to false (all-day events like holidays/vacations are excluded).',
             },
           },
           required: ['durationMinutes', 'searchStartDate', 'searchStartTzid'],
@@ -524,6 +532,7 @@ export class CalDAVMCPServer {
               end,
               calendarUrls: args.calendarUrls as string[] | undefined,
               accountId: args.account as string | undefined,
+              includeAllDay: args.includeAllDay as boolean | undefined,
             });
             let text: string;
             if (!result.hasConflict) {
@@ -554,6 +563,7 @@ export class CalDAVMCPServer {
               workingHoursStart: args.workingHoursStart as number | undefined,
               workingHoursEnd: args.workingHoursEnd as number | undefined,
               maxSlots: args.maxSlots as number | undefined,
+              includeAllDay: args.includeAllDay as boolean | undefined,
             });
             let text: string;
             if (slots.length === 0) {
@@ -627,7 +637,7 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   if (args.length > 0) {
     const handled = await handleAccountsCommand(args);
-    if (handled) return;
+    if (handled) process.exit(0);
   }
 
   const server = new CalDAVMCPServer();
