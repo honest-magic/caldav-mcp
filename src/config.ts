@@ -117,6 +117,27 @@ export async function saveAccount(account: CalDAVAccount): Promise<void> {
  * Results are cached in memory; the cache is invalidated when the file changes.
  * Returns an empty array if the file does not exist or cannot be parsed.
  */
+/**
+ * Removes a CalDAVAccount from accounts.json by id.
+ * Returns true if the account was found and removed, false if not found.
+ */
+export async function removeAccount(id: string): Promise<boolean> {
+  let accounts: CalDAVAccount[] = [];
+  try {
+    const raw = await fsPromises.readFile(ACCOUNTS_PATH, 'utf-8');
+    accounts = JSON.parse(raw);
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+    return false;
+  }
+  const idx = accounts.findIndex((a) => a.id === id);
+  if (idx < 0) return false;
+  accounts.splice(idx, 1);
+  await fsPromises.writeFile(ACCOUNTS_PATH, JSON.stringify(accounts, null, 2), 'utf-8');
+  resetConfigCache();
+  return true;
+}
+
 export async function getAccounts(): Promise<CalDAVAccount[]> {
   if (cachedAccounts !== null) return cachedAccounts;
   startWatcher();
