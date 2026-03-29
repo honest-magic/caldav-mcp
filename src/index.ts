@@ -10,6 +10,7 @@ import {
 import { CalendarService } from './services/calendar.js';
 import { CalDAVMCPError, ConflictError } from './errors.js';
 import { parseICS } from './utils/ical-parser.js';
+import { msToEventTime } from './utils/conflict-detector.js';
 import type { EventTime } from './types.js';
 
 export class CalDAVMCPServer {
@@ -300,6 +301,90 @@ export class CalDAVMCPServer {
           required: ['eventUrl', 'calendarUrl', 'etag'],
         },
       },
+      {
+        name: 'check_conflicts',
+        description:
+          'Check if a proposed event time conflicts with existing events across calendars. Expands recurring events (RRULE) including EXDATE exceptions and RECURRENCE-ID overrides. Returns conflicting time periods.',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {
+            startDate: {
+              type: 'string',
+              description: 'Proposed event start date-time, ISO 8601 (e.g. 2024-03-15T09:00:00)',
+            },
+            startTzid: {
+              type: 'string',
+              description: 'IANA timezone for start (e.g. "America/New_York" or "UTC")',
+            },
+            endDate: {
+              type: 'string',
+              description: 'Proposed event end date-time, ISO 8601 (e.g. 2024-03-15T10:00:00)',
+            },
+            endTzid: {
+              type: 'string',
+              description: 'IANA timezone for end (e.g. "America/New_York" or "UTC")',
+            },
+            calendarUrls: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Optional list of calendar URLs to check. Defaults to all calendars across all accounts.',
+            },
+            account: {
+              type: 'string',
+              description: 'Optional account ID to restrict the conflict check to one account.',
+            },
+          },
+          required: ['startDate', 'startTzid', 'endDate', 'endTzid'],
+        },
+      },
+      {
+        name: 'suggest_slots',
+        description:
+          'Find available time slots for scheduling. Searches across all calendars, expands recurring events, and suggests gaps that fit the requested duration. Optionally filters by working hours.',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {
+            durationMinutes: {
+              type: 'number',
+              description: 'Duration of the event to schedule, in minutes (e.g. 60 for a 1-hour meeting)',
+            },
+            searchStartDate: {
+              type: 'string',
+              description: 'Start of the search window, ISO 8601 (e.g. 2024-03-15T00:00:00)',
+            },
+            searchStartTzid: {
+              type: 'string',
+              description: 'IANA timezone for the search start (e.g. "America/New_York" or "UTC")',
+            },
+            searchDays: {
+              type: 'number',
+              description: 'Number of days to search from searchStart. Defaults to 7.',
+            },
+            calendarUrls: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Optional list of calendar URLs to check. Defaults to all calendars across all accounts.',
+            },
+            account: {
+              type: 'string',
+              description: 'Optional account ID to restrict the search to one account.',
+            },
+            workingHoursStart: {
+              type: 'number',
+              description: 'Start of working hours (0-23, inclusive). Only suggest slots within working hours when set together with workingHoursEnd.',
+            },
+            workingHoursEnd: {
+              type: 'number',
+              description: 'End of working hours (0-23, exclusive, e.g. 17 means up to 17:00). Only suggest slots within working hours when set together with workingHoursStart.',
+            },
+            maxSlots: {
+              type: 'number',
+              description: 'Maximum number of slot suggestions to return. Defaults to 5.',
+            },
+          },
+          required: ['durationMinutes', 'searchStartDate', 'searchStartTzid'],
+        },
+      },
     ];
   }
 
@@ -422,6 +507,66 @@ export class CalDAVMCPServer {
               confirmationId: args.confirmationId as string | undefined,
             });
             return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+          }
+
+          case 'check_conflicts': {
+            const start: EventTime = {
+              localTime: args.startDate as string,
+              tzid: args.startTzid as string,
+            };
+            const end: EventTime = {
+              localTime: args.endDate as string,
+              tzid: args.endTzid as string,
+            };
+            const result = await this.calendarService.checkConflicts({
+              start,
+              end,
+              calendarUrls: args.calendarUrls as string[] | undefined,
+              accountId: args.account as string | undefined,
+            });
+            let text: string;
+            if (!result.hasConflict) {
+              text = 'No conflicts found.';
+            } else {
+              const lines = ['Conflicts detected:'];
+              for (const conflict of result.conflicts) {
+                const conflictStart = msToEventTime(conflict.startMs, start.tzid);
+                const conflictEnd = msToEventTime(conflict.endMs, start.tzid);
+                lines.push(`  - ${conflictStart.localTime} to ${conflictEnd.localTime} (${conflictStart.tzid})`);
+              }
+              text = lines.join('\n');
+            }
+            return { content: [{ type: 'text' as const, text }] };
+          }
+
+          case 'suggest_slots': {
+            const searchStart: EventTime = {
+              localTime: args.searchStartDate as string,
+              tzid: args.searchStartTzid as string,
+            };
+            const slots = await this.calendarService.suggestSlots({
+              durationMinutes: args.durationMinutes as number,
+              searchStart,
+              searchDays: args.searchDays as number | undefined,
+              calendarUrls: args.calendarUrls as string[] | undefined,
+              accountId: args.account as string | undefined,
+              workingHoursStart: args.workingHoursStart as number | undefined,
+              workingHoursEnd: args.workingHoursEnd as number | undefined,
+              maxSlots: args.maxSlots as number | undefined,
+            });
+            let text: string;
+            if (slots.length === 0) {
+              text = 'No available slots found in the search window.';
+            } else {
+              const lines = ['Available slots:'];
+              slots.forEach((slot, i) => {
+                const slotStart = msToEventTime(slot.startMs, searchStart.tzid);
+                const slotEnd = msToEventTime(slot.endMs, searchStart.tzid);
+                lines.push(`  Slot ${i + 1}: ${slotStart.localTime} - ${slotEnd.localTime} (${slotStart.tzid})`);
+              });
+              text = lines.join('\n');
+            }
+            return { content: [{ type: 'text' as const, text }] };
           }
 
           default:
