@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to plan
-stopped_at: Completed 02-write-operations/02-02-PLAN.md
-last_updated: "2026-03-28T17:19:21.480Z"
+status: Ready to execute
+stopped_at: Completed 03-scheduling-intelligence/03-01-PLAN.md
+last_updated: "2026-03-29T06:40:04.246Z"
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 7
+  completed_plans: 6
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** AI agents can act as a personal calendar assistant: find invites in email, check for conflicts, and manage calendar events — only acting after explicit user confirmation.
-**Current focus:** Phase 02 — write-operations
+**Current focus:** Phase 03 — scheduling-intelligence
 
 ## Current Position
 
-Phase: 3
-Plan: Not started
+Phase: 03 (scheduling-intelligence) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Plan: Not started
 | Phase 01-foundation-read P03 | 150s | 2 tasks | 3 files |
 | Phase 02-write-operations P01 | 156s | 2 tasks | 6 files |
 | Phase 02-write-operations P02 | 15min | 2 tasks | 3 files |
+| Phase 03 P01 | 20min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,9 @@ Recent decisions affecting current work:
 - [Phase 02-write-operations]: ConfirmationStore uses lazy eviction on consume() rather than background timers — simpler and correct for MCP tool request patterns
 - [Phase 02-write-operations]: Use stored confirmation args on execute to prevent parameter substitution attacks
 - [Phase 02-write-operations]: ConflictError handler placed before generic CalDAVMCPError handler (subclass-first ordering)
+- [Phase 03-01]: event.iterator() called with no arguments — never pass startDate to preserve RECURRENCE-ID override matching
+- [Phase 03-01]: icalTimeToMs uses luxon DateTime.fromISO with TZID string for DST-correct epoch conversion; floating mapped to local
+- [Phase 03-01]: Adjacent intervals merged in mergePeriods; detectConflicts treats boundary touch as non-overlapping
 
 ### Pending Todos
 
@@ -88,6 +92,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T17:13:11.324Z
-Stopped at: Completed 02-write-operations/02-02-PLAN.md
+Last session: 2026-03-29T06:40:04.243Z
+Stopped at: Completed 03-scheduling-intelligence/03-01-PLAN.md
 Resume file: None

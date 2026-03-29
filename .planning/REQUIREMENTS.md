@@ -31,9 +31,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Scheduling Intelligence
 
-- [ ] **SCHED-01**: System detects scheduling conflicts against existing events across calendars
-- [ ] **SCHED-02**: System suggests available time slots when conflicts exist
-- [ ] **SCHED-03**: System expands recurring events (RRULE) for accurate conflict detection
+- [x] **SCHED-01**: System detects scheduling conflicts against existing events across calendars
+- [x] **SCHED-02**: System suggests available time slots when conflicts exist
+- [x] **SCHED-03**: System expands recurring events (RRULE) for accurate conflict detection
 - [ ] **SCHED-04**: System supports free-busy queries (RFC 4791 §7.10) with event-range fallback
 
 ### Cross-Cutting
@@ -99,9 +99,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WRITE-03 | Phase 2 | Complete |
 | CORE-01 | Phase 2 | Complete |
 | CORE-03 | Phase 2 | Complete |
-| SCHED-01 | Phase 3 | Pending |
-| SCHED-02 | Phase 3 | Pending |
-| SCHED-03 | Phase 3 | Pending |
+| SCHED-01 | Phase 3 | Complete |
+| SCHED-02 | Phase 3 | Complete |
+| SCHED-03 | Phase 3 | Complete |
 | WRITE-04 | Phase 4 | Pending |
 | SCHED-04 | Phase 4 | Pending |
 

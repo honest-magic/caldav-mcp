@@ -61,10 +61,10 @@ Plans:
   1. User can check whether a proposed event time conflicts with any existing event, including instances of recurring events expanded within the query window
   2. Conflict detection correctly handles recurring events with EXDATE exceptions and RECURRENCE-ID overrides, not just the base RRULE
   3. When a conflict exists, the tool returns a list of available time slots within a specified search window as alternatives
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
-- [ ] 03-01-PLAN.md — Core utilities: recurrence expander + conflict detector with unit tests
+- [x] 03-01-PLAN.md — Core utilities: recurrence expander + conflict detector with unit tests
 - [ ] 03-02-PLAN.md — CalendarService methods + MCP tool handlers (check_conflicts, suggest_slots)
 
 ### Phase 4: RSVP + Extended Capabilities
@@ -85,5 +85,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Foundation + Read | 3/3 | Complete   | 2026-03-28 |
 | 2. Write Operations | 1/2 | In Progress|  |
-| 3. Scheduling Intelligence | 0/2 | Not started | - |
+| 3. Scheduling Intelligence | 1/2 | In Progress|  |
 | 4. RSVP + Extended Capabilities | 0/TBD | Not started | - |
