@@ -637,6 +637,34 @@ export class CalDAVMCPServer {
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
+  if (args.includes('--version')) {
+    const { createRequire } = await import('node:module');
+    const require = createRequire(import.meta.url);
+    const pkg = require('../package.json');
+    console.log(pkg.version);
+    process.exit(0);
+  }
+
+  if (args.includes('--help') || args.includes('-h')) {
+    const { createRequire } = await import('node:module');
+    const require = createRequire(import.meta.url);
+    const pkg = require('../package.json');
+    console.log(`caldav-mcp v${pkg.version} — MCP server for CalDAV calendar access
+
+Usage: caldav-mcp [options] [command]
+
+Commands:
+  accounts add        Add a new CalDAV account (interactive)
+  accounts list       List configured accounts
+  accounts remove ID  Remove an account
+
+Options:
+  --install-claude    Write caldav-mcp to Claude Desktop config and exit
+  --version           Show version number
+  -h, --help          Show this help message`);
+    process.exit(0);
+  }
+
   if (args.includes('--install-claude')) {
     const { join } = await import('node:path');
     const { homedir } = await import('node:os');
