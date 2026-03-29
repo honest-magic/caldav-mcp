@@ -1,0 +1,117 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test
+
+  publish:
+    needs: [ci]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Upgrade npm for OIDC trusted publishing
+        run: npm install -g npm@latest
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify version matches tag
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag version ($TAG_VERSION) does not match package.json version ($PKG_VERSION)"
+            exit 1
+          fi
+          echo "Version check passed: $PKG_VERSION"
+
+      - name: Build
+        run: npm run build
+
+      - name: Publish to npm
+        run: npm publish --provenance --access public
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+
+  update-homebrew:
+    needs: [publish]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version and compute SHA-256
+        id: meta
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          TARBALL_URL="https://registry.npmjs.org/@honest-magic/caldav-mcp/-/caldav-mcp-${VERSION}.tgz"
+          SHA256=$(curl -sL "$TARBALL_URL" | shasum -a 256 | cut -d' ' -f1)
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          echo "url=$TARBALL_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Update Homebrew formula
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          script: |
+            const { data: file } = await github.rest.repos.getContent({
+              owner: 'honest-magic',
+              repo: 'homebrew-tap',
+              path: 'Formula/caldav-mcp.rb',
+            });
+            let content = Buffer.from(file.content, 'base64').toString('utf8');
+            content = content.replace(
+              /url "https:\/\/registry\.npmjs\.org\/@honest-magic\/caldav-mcp\/-\/caldav-mcp-.*\.tgz"/,
+              `url "${{ steps.meta.outputs.url }}"`
+            );
+            content = content.replace(
+              /sha256 "[a-f0-9]{64}"/,
+              `sha256 "${{ steps.meta.outputs.sha256 }}"`
+            );
+            await github.rest.repos.createOrUpdateFileContents({
+              owner: 'honest-magic',
+              repo: 'homebrew-tap',
+              path: 'Formula/caldav-mcp.rb',
+              message: `bump caldav-mcp to ${{ steps.meta.outputs.version }}`,
+              content: Buffer.from(content).toString('base64'),
+              sha: file.sha,
+            });

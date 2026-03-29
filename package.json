@@ -17,6 +17,9 @@
     "type": "git",
     "url": "git+https://github.com/honest-magic/caldav-mcp.git"
   },
+  "bugs": {
+    "url": "https://github.com/honest-magic/caldav-mcp/issues"
+  },
   "engines": {
     "node": ">=18.0.0"
   },
