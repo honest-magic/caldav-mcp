@@ -24,28 +24,29 @@ const pkg = require('../package.json') as { version: string };
 // Zod schemas for tool argument validation
 // ---------------------------------------------------------------------------
 
-const listCalendarsArgs = z.object({
+/** @internal — exported for testing only */
+export const listCalendarsArgs = z.object({
   account: z.string().optional(),
 });
 
-const listEventsArgs = z.object({
+export const listEventsArgs = z.object({
   calendarUrl: z.string(),
   startDate: z.string(),
   endDate: z.string(),
   account: z.string().optional(),
 });
 
-const readEventArgs = z.object({
+export const readEventArgs = z.object({
   eventUrl: z.string(),
   calendarUrl: z.string(),
   account: z.string().optional(),
 });
 
-const parseIcsArgs = z.object({
+export const parseIcsArgs = z.object({
   icsData: z.string(),
 });
 
-const registerOAuth2Args = z.object({
+export const registerOAuth2Args = z.object({
   accountId: z.string(),
   serverUrl: z.string(),
   username: z.string(),
@@ -56,7 +57,7 @@ const registerOAuth2Args = z.object({
   name: z.string().optional(),
 });
 
-const createEventArgs = z.object({
+export const createEventArgs = z.object({
   calendarUrl: z.string(),
   summary: z.string(),
   startDate: z.string(),
@@ -69,7 +70,7 @@ const createEventArgs = z.object({
   confirmationId: z.string().optional(),
 });
 
-const updateEventArgs = z.object({
+export const updateEventArgs = z.object({
   eventUrl: z.string(),
   calendarUrl: z.string(),
   etag: z.string(),
@@ -84,7 +85,7 @@ const updateEventArgs = z.object({
   confirmationId: z.string().optional(),
 });
 
-const deleteEventArgs = z.object({
+export const deleteEventArgs = z.object({
   eventUrl: z.string(),
   calendarUrl: z.string(),
   etag: z.string(),
@@ -92,7 +93,7 @@ const deleteEventArgs = z.object({
   confirmationId: z.string().optional(),
 });
 
-const checkConflictsArgs = z.object({
+export const checkConflictsArgs = z.object({
   startDate: z.string(),
   startTzid: z.string(),
   endDate: z.string(),
@@ -102,7 +103,7 @@ const checkConflictsArgs = z.object({
   includeAllDay: z.boolean().optional(),
 });
 
-const suggestSlotsArgs = z.object({
+export const suggestSlotsArgs = z.object({
   durationMinutes: z.number(),
   searchStartDate: z.string(),
   searchStartTzid: z.string(),
