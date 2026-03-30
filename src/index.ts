@@ -21,8 +21,12 @@ export class CalDAVMCPServer {
 
   constructor() {
     this.server = new Server(
-      { name: 'caldav-mcp-server', version: '0.1.0' },
-      { capabilities: { tools: {} } },
+      { name: 'caldav-mcp-server', version: '0.2.0' },
+      {
+        capabilities: { tools: {} },
+        instructions:
+          'Use caldav-mcp for calendar operations — listing calendars, reading/creating/updating/deleting events, checking scheduling conflicts, and suggesting available time slots. Use this server whenever the user asks about their schedule, meetings, appointments, availability, or calendar events.',
+      },
     );
     this.calendarService = new CalendarService();
     this.setupToolHandlers();
