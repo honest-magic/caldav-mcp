@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { createRequire } from 'node:module';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -7,13 +8,112 @@ import {
   ErrorCode,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
+import { z } from 'zod';
 import { CalendarService } from './services/calendar.js';
 import { handleAccountsCommand } from './cli/accounts.js';
 import { installClaude } from './cli/install-claude.js';
-import { CalDAVMCPError, ConflictError } from './errors.js';
+import { CalDAVMCPError, ConflictError, ValidationError } from './errors.js';
 import { parseICS } from './utils/ical-parser.js';
 import { msToEventTime } from './utils/conflict-detector.js';
 import type { EventTime } from './types.js';
+
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json') as { version: string };
+
+// ---------------------------------------------------------------------------
+// Zod schemas for tool argument validation
+// ---------------------------------------------------------------------------
+
+const listCalendarsArgs = z.object({
+  account: z.string().optional(),
+});
+
+const listEventsArgs = z.object({
+  calendarUrl: z.string(),
+  startDate: z.string(),
+  endDate: z.string(),
+  account: z.string().optional(),
+});
+
+const readEventArgs = z.object({
+  eventUrl: z.string(),
+  calendarUrl: z.string(),
+  account: z.string().optional(),
+});
+
+const parseIcsArgs = z.object({
+  icsData: z.string(),
+});
+
+const registerOAuth2Args = z.object({
+  accountId: z.string(),
+  serverUrl: z.string(),
+  username: z.string(),
+  clientId: z.string(),
+  clientSecret: z.string(),
+  refreshToken: z.string(),
+  tokenUrl: z.string(),
+  name: z.string().optional(),
+});
+
+const createEventArgs = z.object({
+  calendarUrl: z.string(),
+  summary: z.string(),
+  startDate: z.string(),
+  startTzid: z.string(),
+  endDate: z.string(),
+  endTzid: z.string(),
+  description: z.string().optional(),
+  location: z.string().optional(),
+  account: z.string().optional(),
+  confirmationId: z.string().optional(),
+});
+
+const updateEventArgs = z.object({
+  eventUrl: z.string(),
+  calendarUrl: z.string(),
+  etag: z.string(),
+  summary: z.string().optional(),
+  startDate: z.string().optional(),
+  startTzid: z.string().optional(),
+  endDate: z.string().optional(),
+  endTzid: z.string().optional(),
+  description: z.string().nullable().optional(),
+  location: z.string().nullable().optional(),
+  account: z.string().optional(),
+  confirmationId: z.string().optional(),
+});
+
+const deleteEventArgs = z.object({
+  eventUrl: z.string(),
+  calendarUrl: z.string(),
+  etag: z.string(),
+  account: z.string().optional(),
+  confirmationId: z.string().optional(),
+});
+
+const checkConflictsArgs = z.object({
+  startDate: z.string(),
+  startTzid: z.string(),
+  endDate: z.string(),
+  endTzid: z.string(),
+  calendarUrls: z.array(z.string()).optional(),
+  account: z.string().optional(),
+  includeAllDay: z.boolean().optional(),
+});
+
+const suggestSlotsArgs = z.object({
+  durationMinutes: z.number(),
+  searchStartDate: z.string(),
+  searchStartTzid: z.string(),
+  searchDays: z.number().optional(),
+  calendarUrls: z.array(z.string()).optional(),
+  account: z.string().optional(),
+  workingHoursStart: z.number().optional(),
+  workingHoursEnd: z.number().optional(),
+  maxSlots: z.number().optional(),
+  includeAllDay: z.boolean().optional(),
+});
 
 export class CalDAVMCPServer {
   private server: Server;
@@ -21,7 +121,7 @@ export class CalDAVMCPServer {
 
   constructor() {
     this.server = new Server(
-      { name: 'caldav-mcp-server', version: '0.2.0' },
+      { name: 'caldav-mcp-server', version: pkg.version },
       {
         capabilities: { tools: {} },
         instructions:
@@ -414,130 +514,103 @@ export class CalDAVMCPServer {
       try {
         switch (name) {
           case 'list_calendars': {
-            const result = await this.calendarService.listCalendars(
-              args.account as string | undefined,
-            );
+            const v = listCalendarsArgs.parse(args);
+            const result = await this.calendarService.listCalendars(v.account);
             return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
           }
 
           case 'list_events': {
+            const v = listEventsArgs.parse(args);
             const result = await this.calendarService.listEvents(
-              args.calendarUrl as string,
-              args.startDate as string,
-              args.endDate as string,
-              args.account as string | undefined,
+              v.calendarUrl, v.startDate, v.endDate, v.account,
             );
             return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
           }
 
           case 'read_event': {
+            const v = readEventArgs.parse(args);
             const result = await this.calendarService.readEvent(
-              args.eventUrl as string,
-              args.calendarUrl as string,
-              args.account as string | undefined,
+              v.eventUrl, v.calendarUrl, v.account,
             );
             return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
           }
 
           case 'parse_ics': {
-            const result = parseICS(args.icsData as string);
+            const v = parseIcsArgs.parse(args);
+            const result = parseICS(v.icsData);
             return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
           }
 
           case 'register_oauth2_account': {
-            const result = await this.calendarService.registerOAuth2Account(
-              args as {
-                accountId: string;
-                serverUrl: string;
-                username: string;
-                clientId: string;
-                clientSecret: string;
-                refreshToken: string;
-                tokenUrl: string;
-                name?: string;
-              },
-            );
+            const v = registerOAuth2Args.parse(args);
+            const result = await this.calendarService.registerOAuth2Account(v);
             return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
           }
 
           case 'create_event': {
-            const start: EventTime = {
-              localTime: args.startDate as string,
-              tzid: args.startTzid as string,
-            };
-            const end: EventTime = {
-              localTime: args.endDate as string,
-              tzid: args.endTzid as string,
-            };
+            const v = createEventArgs.parse(args);
+            const start: EventTime = { localTime: v.startDate, tzid: v.startTzid };
+            const end: EventTime = { localTime: v.endDate, tzid: v.endTzid };
             const result = await this.calendarService.createEvent({
-              calendarUrl: args.calendarUrl as string,
-              summary: args.summary as string,
+              calendarUrl: v.calendarUrl,
+              summary: v.summary,
               start,
               end,
-              description: args.description as string | undefined ?? null,
-              location: args.location as string | undefined ?? null,
-              accountId: args.account as string | undefined,
-              confirmationId: args.confirmationId as string | undefined,
+              description: v.description ?? null,
+              location: v.location ?? null,
+              accountId: v.account,
+              confirmationId: v.confirmationId,
             });
             return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
           }
 
           case 'update_event': {
+            const v = updateEventArgs.parse(args);
             let start: EventTime | undefined;
-            if (args.startDate && args.startTzid) {
-              start = {
-                localTime: args.startDate as string,
-                tzid: args.startTzid as string,
-              };
+            if (v.startDate && v.startTzid) {
+              start = { localTime: v.startDate, tzid: v.startTzid };
             }
             let end: EventTime | undefined;
-            if (args.endDate && args.endTzid) {
-              end = {
-                localTime: args.endDate as string,
-                tzid: args.endTzid as string,
-              };
+            if (v.endDate && v.endTzid) {
+              end = { localTime: v.endDate, tzid: v.endTzid };
             }
             const result = await this.calendarService.updateEvent({
-              eventUrl: args.eventUrl as string,
-              calendarUrl: args.calendarUrl as string,
-              etag: args.etag as string,
-              summary: args.summary as string | undefined,
+              eventUrl: v.eventUrl,
+              calendarUrl: v.calendarUrl,
+              etag: v.etag,
+              summary: v.summary,
               start,
               end,
-              description: args.description !== undefined ? args.description as string | null : undefined,
-              location: args.location !== undefined ? args.location as string | null : undefined,
-              accountId: args.account as string | undefined,
-              confirmationId: args.confirmationId as string | undefined,
+              description: v.description,
+              location: v.location,
+              accountId: v.account,
+              confirmationId: v.confirmationId,
             });
             return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
           }
 
           case 'delete_event': {
+            const v = deleteEventArgs.parse(args);
             const result = await this.calendarService.deleteEvent({
-              eventUrl: args.eventUrl as string,
-              calendarUrl: args.calendarUrl as string,
-              etag: args.etag as string,
-              accountId: args.account as string | undefined,
-              confirmationId: args.confirmationId as string | undefined,
+              eventUrl: v.eventUrl,
+              calendarUrl: v.calendarUrl,
+              etag: v.etag,
+              accountId: v.account,
+              confirmationId: v.confirmationId,
             });
             return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
           }
 
           case 'check_conflicts': {
-            const start: EventTime = {
-              localTime: args.startDate as string,
-              tzid: args.startTzid as string,
-            };
-            const end: EventTime = {
-              localTime: args.endDate as string,
-              tzid: args.endTzid as string,
-            };
+            const v = checkConflictsArgs.parse(args);
+            const start: EventTime = { localTime: v.startDate, tzid: v.startTzid };
+            const end: EventTime = { localTime: v.endDate, tzid: v.endTzid };
             const result = await this.calendarService.checkConflicts({
               start,
               end,
-              calendarUrls: args.calendarUrls as string[] | undefined,
-              accountId: args.account as string | undefined,
-              includeAllDay: args.includeAllDay as boolean | undefined,
+              calendarUrls: v.calendarUrls,
+              accountId: v.account,
+              includeAllDay: v.includeAllDay,
             });
             let text: string;
             if (!result.hasConflict) {
@@ -555,20 +628,18 @@ export class CalDAVMCPServer {
           }
 
           case 'suggest_slots': {
-            const searchStart: EventTime = {
-              localTime: args.searchStartDate as string,
-              tzid: args.searchStartTzid as string,
-            };
+            const v = suggestSlotsArgs.parse(args);
+            const searchStart: EventTime = { localTime: v.searchStartDate, tzid: v.searchStartTzid };
             const slots = await this.calendarService.suggestSlots({
-              durationMinutes: args.durationMinutes as number,
+              durationMinutes: v.durationMinutes,
               searchStart,
-              searchDays: args.searchDays as number | undefined,
-              calendarUrls: args.calendarUrls as string[] | undefined,
-              accountId: args.account as string | undefined,
-              workingHoursStart: args.workingHoursStart as number | undefined,
-              workingHoursEnd: args.workingHoursEnd as number | undefined,
-              maxSlots: args.maxSlots as number | undefined,
-              includeAllDay: args.includeAllDay as boolean | undefined,
+              searchDays: v.searchDays,
+              calendarUrls: v.calendarUrls,
+              accountId: v.account,
+              workingHoursStart: v.workingHoursStart,
+              workingHoursEnd: v.workingHoursEnd,
+              maxSlots: v.maxSlots,
+              includeAllDay: v.includeAllDay,
             });
             let text: string;
             if (slots.length === 0) {
@@ -590,6 +661,13 @@ export class CalDAVMCPServer {
         }
       } catch (err) {
         if (err instanceof McpError) throw err;
+        if (err instanceof z.ZodError) {
+          const issues = err.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
+          return {
+            content: [{ type: 'text' as const, text: JSON.stringify({ error: `Invalid arguments: ${issues}`, code: 'ValidationError' }) }],
+            isError: true,
+          };
+        }
         // ConflictError must be checked before CalDAVMCPError (it extends it)
         if (err instanceof ConflictError) {
           return {
@@ -642,17 +720,11 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
   if (args.includes('--version')) {
-    const { createRequire } = await import('node:module');
-    const require = createRequire(import.meta.url);
-    const pkg = require('../package.json');
     console.log(pkg.version);
     process.exit(0);
   }
 
   if (args.includes('--help') || args.includes('-h')) {
-    const { createRequire } = await import('node:module');
-    const require = createRequire(import.meta.url);
-    const pkg = require('../package.json');
     console.log(`caldav-mcp v${pkg.version} — MCP server for CalDAV calendar access
 
 Usage: caldav-mcp [options] [command]
