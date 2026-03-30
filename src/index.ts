@@ -120,13 +120,16 @@ export class CalDAVMCPServer {
   private server: Server;
   private calendarService: CalendarService;
 
-  constructor() {
+  constructor(accountNames?: string[]) {
+    const accountHint = accountNames && accountNames.length > 0
+      ? ` Connected accounts: ${accountNames.join(', ')}.`
+      : '';
     this.server = new Server(
       { name: 'caldav-mcp-server', version: pkg.version },
       {
         capabilities: { tools: {} },
         instructions:
-          'Use caldav-mcp for calendar operations — listing calendars, reading/creating/updating/deleting events, checking scheduling conflicts, and suggesting available time slots. Use this server whenever the user asks about their schedule, meetings, appointments, availability, or calendar events.',
+          `Use caldav-mcp for calendar operations — listing calendars, reading/creating/updating/deleting events, checking scheduling conflicts, and suggesting available time slots. Use this server whenever the user asks about their schedule, meetings, appointments, availability, or calendar events.${accountHint}`,
       },
     );
     this.calendarService = new CalendarService();
@@ -804,7 +807,12 @@ Options:
     if (handled) process.exit(0);
   }
 
-  const server = new CalDAVMCPServer();
+  // Load account names before constructing the server so instructions include them
+  const { getAccounts: loadAccounts } = await import('./config.js');
+  const accounts = await loadAccounts();
+  const accountNames = accounts.map((a) => a.name);
+
+  const server = new CalDAVMCPServer(accountNames);
   await server.run();
 }
 
