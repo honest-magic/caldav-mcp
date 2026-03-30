@@ -42,6 +42,7 @@ vi.mock('../utils/ical-generator.js', () => ({
 
 vi.mock('../utils/recurrence-expander.js', () => ({
   expandToBusyPeriods: vi.fn().mockReturnValue([]),
+  expandToOccurrences: vi.fn().mockReturnValue([]),
 }));
 
 vi.mock('../utils/conflict-detector.js', () => ({
@@ -60,7 +61,7 @@ import { CalDAVClient } from '../protocol/caldav.js';
 import { getAccounts } from '../config.js';
 import { parseICS } from '../utils/ical-parser.js';
 import { generateICS } from '../utils/ical-generator.js';
-import { expandToBusyPeriods } from '../utils/recurrence-expander.js';
+import { expandToBusyPeriods, expandToOccurrences } from '../utils/recurrence-expander.js';
 import { mergePeriods, detectConflicts, findAvailableSlots, eventTimeToMs } from '../utils/conflict-detector.js';
 import { ValidationError, NetworkError } from '../errors.js';
 import type { ParsedEvent, EventTime } from '../types.js';
@@ -69,6 +70,7 @@ const MockCalDAVClient = vi.mocked(CalDAVClient);
 const mockGetAccounts = vi.mocked(getAccounts);
 const mockParseICS = vi.mocked(parseICS);
 const mockExpandToBusyPeriods = vi.mocked(expandToBusyPeriods);
+const mockExpandToOccurrences = vi.mocked(expandToOccurrences);
 const mockDetectConflicts = vi.mocked(detectConflicts);
 const mockFindAvailableSlots = vi.mocked(findAvailableSlots);
 const mockMergePeriods = vi.mocked(mergePeriods);
@@ -304,19 +306,18 @@ describe('CalendarService', () => {
       ).rejects.toThrow(ValidationError);
     });
 
-    it('returns parsed events within date range', async () => {
+    it('returns expanded occurrences within date range', async () => {
       const mockClient = await initSingleAccount();
-      const parsed = makeParsedEvent({
+      mockClient.fetchCalendarObjects.mockResolvedValue([
+        { url: '/cal/work/ev-1.ics', data: 'BEGIN:VCALENDAR...', etag: '"e1"' },
+      ]);
+      mockExpandToOccurrences.mockReturnValue([{
         uid: 'ev-1',
         summary: 'Meeting',
         start: { localTime: '2025-03-15T09:00:00', tzid: 'UTC' },
         end: { localTime: '2025-03-15T10:00:00', tzid: 'UTC' },
-      });
-
-      mockClient.fetchCalendarObjects.mockResolvedValue([
-        { url: '/cal/work/ev-1.ics', data: 'BEGIN:VCALENDAR...', etag: '"e1"' },
-      ]);
-      mockParseICS.mockReturnValue(parsed);
+        isRecurring: false,
+      }]);
 
       const result = await service.listEvents('/cal/work', '2025-03-01', '2025-03-31', 'acc-1');
 
@@ -328,56 +329,47 @@ describe('CalendarService', () => {
       expect(result[0]!.calendarUrl).toBe('/cal/work');
     });
 
-    it('filters out events outside the date range (client-side)', async () => {
+    it('returns empty when expandToOccurrences returns no occurrences', async () => {
       const mockClient = await initSingleAccount();
-
-      // Event before the range
-      const parsed = makeParsedEvent({
-        start: { localTime: '2024-01-01T09:00:00', tzid: 'UTC' },
-        end: { localTime: '2024-01-01T10:00:00', tzid: 'UTC' },
-      });
       mockClient.fetchCalendarObjects.mockResolvedValue([
         { url: '/cal/work/old.ics', data: 'BEGIN:VCALENDAR...', etag: '"e"' },
       ]);
-      mockParseICS.mockReturnValue(parsed);
+      mockExpandToOccurrences.mockReturnValue([]);
 
       const result = await service.listEvents('/cal/work', '2025-03-01', '2025-03-31', 'acc-1');
       expect(result).toHaveLength(0);
     });
 
-    it('skips client-side date filter for recurring events (RRULE)', async () => {
+    it('expands recurring events into per-occurrence results', async () => {
       const mockClient = await initSingleAccount();
-
-      // Recurring event with DTSTART far in the past
-      const parsed = makeParsedEvent({
-        start: { localTime: '2020-01-01T09:00:00', tzid: 'UTC' },
-        end: { localTime: '2020-01-01T10:00:00', tzid: 'UTC' },
-      });
       mockClient.fetchCalendarObjects.mockResolvedValue([
-        {
-          url: '/cal/work/recurring.ics',
-          data: 'BEGIN:VCALENDAR\nRRULE:FREQ=WEEKLY\nEND:VCALENDAR',
-          etag: '"e"',
-        },
+        { url: '/cal/work/recurring.ics', data: 'BEGIN:VCALENDAR\nRRULE:FREQ=WEEKLY\nEND:VCALENDAR', etag: '"e"' },
       ]);
-      mockParseICS.mockReturnValue(parsed);
+      mockExpandToOccurrences.mockReturnValue([
+        { uid: 'r-1', summary: 'Weekly', start: { localTime: '2025-03-03T09:00:00', tzid: 'UTC' }, end: { localTime: '2025-03-03T10:00:00', tzid: 'UTC' }, isRecurring: true },
+        { uid: 'r-1', summary: 'Weekly', start: { localTime: '2025-03-10T09:00:00', tzid: 'UTC' }, end: { localTime: '2025-03-10T10:00:00', tzid: 'UTC' }, isRecurring: true },
+      ]);
 
       const result = await service.listEvents('/cal/work', '2025-03-01', '2025-03-31', 'acc-1');
-      // Should include recurring event even though DTSTART is outside range
-      expect(result).toHaveLength(1);
+      expect(result).toHaveLength(2);
+      expect(result[0]!.start.localTime).toBe('2025-03-03T09:00:00');
+      expect(result[1]!.start.localTime).toBe('2025-03-10T09:00:00');
     });
 
-    it('skips events that fail to parse', async () => {
+    it('passes window timestamps to expandToOccurrences', async () => {
       const mockClient = await initSingleAccount();
       mockClient.fetchCalendarObjects.mockResolvedValue([
-        { url: '/cal/work/bad.ics', data: 'INVALID DATA', etag: '"e"' },
+        { url: '/cal/work/ev.ics', data: 'ICS-DATA', etag: '"e"' },
       ]);
-      mockParseICS.mockImplementation(() => {
-        throw new Error('Parse error');
-      });
+      mockExpandToOccurrences.mockReturnValue([]);
 
-      const result = await service.listEvents('/cal/work', '2025-03-01', '2025-03-31', 'acc-1');
-      expect(result).toHaveLength(0);
+      await service.listEvents('/cal/work', '2025-03-01T00:00:00', '2025-03-31T00:00:00', 'acc-1');
+
+      expect(mockExpandToOccurrences).toHaveBeenCalledWith(
+        'ICS-DATA',
+        expect.any(Number),
+        expect.any(Number),
+      );
     });
 
     it('skips objects with no data', async () => {

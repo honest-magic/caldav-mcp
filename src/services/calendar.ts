@@ -9,7 +9,7 @@ import { DateTime } from 'luxon';
 import { ConfirmationStore } from '../utils/confirmation-store.js';
 import { generateICS } from '../utils/ical-generator.js';
 import { randomUUID } from 'node:crypto';
-import { expandToBusyPeriods } from '../utils/recurrence-expander.js';
+import { expandToBusyPeriods, expandToOccurrences } from '../utils/recurrence-expander.js';
 import type { BusyPeriod } from '../utils/recurrence-expander.js';
 import { mergePeriods, detectConflicts, findAvailableSlots, eventTimeToMs, msToEventTime } from '../utils/conflict-detector.js';
 import type { SlotSuggestion, ConflictResult } from '../utils/conflict-detector.js';
@@ -87,40 +87,26 @@ export class CalendarService {
     const objects = await client.fetchCalendarObjects(calendar, { start, end });
 
     const results: EventSummary[] = [];
-    const startDT = DateTime.fromISO(startDate).toUTC();
-    const endDT = DateTime.fromISO(endDate).toUTC();
+    const startMs = DateTime.fromISO(startDate).toUTC().toMillis();
+    const endMs = DateTime.fromISO(endDate).toUTC().toMillis();
 
     for (const obj of objects) {
       if (!obj.data) continue;
-      let parsed: ParsedEvent;
-      try {
-        parsed = parseICS(obj.data);
-      } catch (err) {
-        console.error(`[CalendarService] Failed to parse event at ${obj.url}:`, err);
-        continue;
-      }
 
-      // Client-side date filter — defensive against servers that ignore REPORT time-range.
-      // Skip filter for recurring events: the server already matched an occurrence in the
-      // requested range, but the master DTSTART may be far outside the window.
-      const hasRRule = obj.data.includes('RRULE');
-      if (!hasRRule) {
-        const eventStart = DateTime.fromISO(parsed.start.localTime, {
-          zone: parsed.start.tzid === 'floating' ? 'local' : parsed.start.tzid,
-        }).toUTC();
-        if (eventStart < startDT || eventStart > endDT) continue;
+      // Expand recurring events into per-occurrence results
+      const occurrences = expandToOccurrences(obj.data, startMs, endMs);
+      for (const occ of occurrences) {
+        results.push({
+          uid: occ.uid,
+          url: obj.url,
+          etag: obj.etag ?? null,
+          summary: occ.summary,
+          start: occ.start,
+          end: occ.end,
+          accountId: accId,
+          calendarUrl,
+        });
       }
-
-      results.push({
-        uid: parsed.uid,
-        url: obj.url,
-        etag: obj.etag ?? null,
-        summary: parsed.summary,
-        start: parsed.start,
-        end: parsed.end,
-        accountId: accId,
-        calendarUrl,
-      });
     }
     return results;
   }
@@ -402,9 +388,9 @@ export class CalendarService {
     const proposedStartMs = eventTimeToMs(params.start);
     const proposedEndMs = eventTimeToMs(params.end);
 
-    // Wider fetch window: 1 year before proposed start to catch recurring masters
+    // Wider fetch window: 90 days before proposed start to catch recurring masters
     // whose DTSTART precedes the proposed time range.
-    const wideWindowStartMs = proposedStartMs - 365 * 24 * 60 * 60 * 1000;
+    const wideWindowStartMs = proposedStartMs - 90 * 24 * 60 * 60 * 1000;
     const wideWindowEndMs = proposedEndMs;
 
     const allICS = await this._fetchAllICS({
@@ -449,8 +435,8 @@ export class CalendarService {
     const searchStartMs = eventTimeToMs(params.searchStart);
     const searchEndMs = searchStartMs + searchDays * 24 * 60 * 60 * 1000;
 
-    // Wider fetch window: 1 year before search start to catch recurring masters
-    const wideWindowStartMs = searchStartMs - 365 * 24 * 60 * 60 * 1000;
+    // Wider fetch window: 90 days before search start to catch recurring masters
+    const wideWindowStartMs = searchStartMs - 90 * 24 * 60 * 60 * 1000;
 
     const allICS = await this._fetchAllICS({
       windowStartMs: wideWindowStartMs,

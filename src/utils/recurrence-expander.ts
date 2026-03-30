@@ -10,6 +10,14 @@ export interface BusyPeriod {
   endMs: number;
 }
 
+export interface ExpandedOccurrence {
+  uid: string;
+  summary: string;
+  start: { localTime: string; tzid: string };
+  end: { localTime: string; tzid: string } | null;
+  isRecurring: boolean;
+}
+
 // ---------------------------------------------------------------------------
 // Helper: convert ICAL.Time to UTC epoch milliseconds using luxon
 //
@@ -136,4 +144,99 @@ export function expandToBusyPeriods(
   }
 
   return busy;
+}
+
+// ---------------------------------------------------------------------------
+// Public: expandToOccurrences
+//
+// Like expandToBusyPeriods but returns rich event data per occurrence.
+// Used by listEvents to show actual occurrence dates for recurring events.
+// ---------------------------------------------------------------------------
+
+function icalTimeToEventTime(time: ICAL.Time, tzid: string): { localTime: string; tzid: string } {
+  const localStr = time.toString();
+  const cleanStr = localStr.endsWith('Z') ? localStr.slice(0, -1) : localStr;
+  return { localTime: cleanStr, tzid: time.isDate ? 'floating' : tzid };
+}
+
+export function expandToOccurrences(
+  icsData: string,
+  windowStartMs: number,
+  windowEndMs: number,
+): ExpandedOccurrence[] {
+  let jcal: unknown;
+  try {
+    jcal = ICAL.parse(icsData);
+  } catch {
+    return [];
+  }
+  const comp = new ICAL.Component(jcal as string | unknown[]);
+  const vevents = comp.getAllSubcomponents('vevent');
+  if (vevents.length === 0) return [];
+
+  // Find master and exceptions
+  let masterVEvent: ICAL.Component | null = null;
+  const excs: ICAL.Component[] = [];
+  for (const ve of vevents) {
+    if (ve.getFirstProperty('recurrence-id')) {
+      excs.push(ve);
+    } else {
+      masterVEvent = ve;
+    }
+  }
+  if (!masterVEvent) return [];
+
+  const event = new ICAL.Event(masterVEvent);
+  for (const exc of excs) {
+    event.relateException(new ICAL.Event(exc));
+  }
+
+  const uid = (masterVEvent.getFirstPropertyValue('uid') as string | null) ?? '';
+  const summary = (masterVEvent.getFirstPropertyValue('summary') as string | null) ?? '';
+  const dtStartProp = masterVEvent.getFirstProperty('dtstart');
+  const masterTzid = (dtStartProp?.getParameter('tzid') as string | null) ?? 'UTC';
+
+  if (!event.isRecurring()) {
+    // Non-recurring: return as-is if in window
+    const startMs = icalTimeToMs(event.startDate, masterTzid);
+    const endMs = event.endDate ? icalTimeToMs(event.endDate, masterTzid) : startMs;
+    if (endMs > windowStartMs && startMs < windowEndMs) {
+      return [{
+        uid,
+        summary,
+        start: icalTimeToEventTime(event.startDate, masterTzid),
+        end: event.endDate ? icalTimeToEventTime(event.endDate, masterTzid) : null,
+        isRecurring: false,
+      }];
+    }
+    return [];
+  }
+
+  // Recurring: expand occurrences in window
+  const results: ExpandedOccurrence[] = [];
+  const iter = event.iterator();
+  let next: ICAL.Time | null;
+  while ((next = iter.next())) {
+    const details = event.getOccurrenceDetails(next);
+    const itemVEvent = details.item?.component;
+    const itemDtStartProp = itemVEvent?.getFirstProperty('dtstart');
+    const itemTzid = (itemDtStartProp?.getParameter('tzid') as string | null) ?? masterTzid;
+    const itemSummary = (itemVEvent?.getFirstPropertyValue('summary') as string | null) ?? summary;
+
+    const startMs = icalTimeToMs(details.startDate, itemTzid);
+    const endMs = details.endDate ? icalTimeToMs(details.endDate, itemTzid) : startMs;
+
+    if (startMs >= windowEndMs) break;
+    if (endMs <= windowStartMs) continue;
+
+    results.push({
+      uid,
+      summary: itemSummary,
+      start: icalTimeToEventTime(details.startDate, itemTzid),
+      end: details.endDate ? icalTimeToEventTime(details.endDate, itemTzid) : null,
+      isRecurring: true,
+    });
+  }
+
+  return results;
 }
