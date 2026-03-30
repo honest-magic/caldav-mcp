@@ -5,6 +5,8 @@ import { AuthError, NetworkError, ValidationError } from '../errors.js';
 import { loadCredentials } from '../security/keychain.js';
 import { getValidAccessToken } from '../security/oauth2.js';
 
+const REQUEST_TIMEOUT_MS = 30_000;
+
 // createDAVClient returns a plain object, not an instance of DAVClient class
 type DAVClientInstance = Awaited<ReturnType<typeof createDAVClient>>;
 
@@ -79,11 +81,21 @@ export class CalDAVClient {
     }
   }
 
+  private withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new NetworkError(`Request timed out after ${REQUEST_TIMEOUT_MS}ms: ${label}`)), REQUEST_TIMEOUT_MS),
+      ),
+    ]);
+  }
+
   async fetchCalendars(): Promise<DAVCalendar[]> {
     this.assertConnected();
     try {
-      return await this.client!.fetchCalendars();
+      return await this.withTimeout(this.client!.fetchCalendars(), 'fetchCalendars');
     } catch (err) {
+      if (err instanceof NetworkError) throw err;
       const msg = err instanceof Error ? err.message : String(err);
       throw new NetworkError(`Failed to fetch calendars for account ${this.account.id}: ${msg}`, { cause: err });
     }
@@ -95,11 +107,12 @@ export class CalDAVClient {
   ): Promise<DAVObject[]> {
     this.assertConnected();
     try {
-      return await this.client!.fetchCalendarObjects({
-        calendar,
-        ...(timeRange ? { timeRange } : {}),
-      });
+      return await this.withTimeout(
+        this.client!.fetchCalendarObjects({ calendar, ...(timeRange ? { timeRange } : {}) }),
+        'fetchCalendarObjects',
+      );
     } catch (err) {
+      if (err instanceof NetworkError) throw err;
       const msg = err instanceof Error ? err.message : String(err);
       throw new NetworkError(`Failed to fetch calendar objects: ${msg}`, { cause: err });
     }
@@ -108,12 +121,13 @@ export class CalDAVClient {
   async fetchSingleObject(calendar: DAVCalendar, objectUrl: string): Promise<DAVObject | null> {
     this.assertConnected();
     try {
-      const results = await this.client!.fetchCalendarObjects({
-        calendar,
-        objectUrls: [objectUrl],
-      });
+      const results = await this.withTimeout(
+        this.client!.fetchCalendarObjects({ calendar, objectUrls: [objectUrl] }),
+        `fetchSingleObject(${objectUrl})`,
+      );
       return results[0] ?? null;
     } catch (err) {
+      if (err instanceof NetworkError) throw err;
       const msg = err instanceof Error ? err.message : String(err);
       throw new NetworkError(`Failed to fetch calendar object ${objectUrl}: ${msg}`, { cause: err });
     }

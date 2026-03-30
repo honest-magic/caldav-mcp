@@ -736,6 +736,7 @@ Commands:
   accounts remove ID  Remove an account
 
 Options:
+  --validate-accounts Probe CalDAV connections for all accounts and exit
   --install-claude    Write caldav-mcp to Claude Desktop config and exit
   --version           Show version number
   -h, --help          Show this help message`);
@@ -772,6 +773,30 @@ Options:
       process.exit(1);
     }
     process.exit(0);
+  }
+
+  if (args.includes('--validate-accounts')) {
+    const { getAccounts } = await import('./config.js');
+    const { CalDAVClient } = await import('./protocol/caldav.js');
+    const accounts = await getAccounts();
+    if (accounts.length === 0) {
+      console.log('No accounts configured.');
+      process.exit(0);
+    }
+    let allOk = true;
+    for (const account of accounts) {
+      const client = new CalDAVClient(account);
+      try {
+        await client.connect();
+        const cals = await client.fetchCalendars();
+        console.log(`  ✓ ${account.id} — ${cals.length} calendar(s)`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`  ✗ ${account.id} — ${msg}`);
+        allOk = false;
+      }
+    }
+    process.exit(allOk ? 0 : 1);
   }
 
   if (args.length > 0) {

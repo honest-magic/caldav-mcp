@@ -7,6 +7,7 @@ import {
 } from '../config.js';
 import type { CalDAVAccount } from '../config.js';
 import { saveCredentials, removeCredentials } from '../security/keychain.js';
+import { CalDAVClient } from '../protocol/caldav.js';
 
 /**
  * Handle the `accounts` CLI subcommand.
@@ -153,7 +154,18 @@ async function addAccount(): Promise<void> {
     await saveAccount(account);
     await saveCredentials(id, password);
 
-    console.log(`Account '${id}' added.`);
+    // Test connection
+    console.log('Testing connection...');
+    try {
+      const client = new CalDAVClient(account);
+      await client.connect();
+      const calendars = await client.fetchCalendars();
+      console.log(`Account '${id}' added. Connection OK — ${calendars.length} calendar(s) found.`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`Account '${id}' added but connection test failed: ${msg}`);
+      console.warn('Credentials are saved — you can fix the issue and restart the server.');
+    }
   } finally {
     rl.close();
   }
